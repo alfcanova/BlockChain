@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross-Chain Dashboard — 7 Blockchains</title>
+<style>
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1e293b;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--purple:#8b5cf6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--cyan:#06b6d4;--blue:#3b82f6;--orange:#f97316;--pink:#ec4899;--emerald:#10b981}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#1e1b4b,#0f172a);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50}
+.header h1{font-size:1.3rem;font-weight:700}.header .badge{background:var(--purple);padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:600}
+.header .nav{margin-left:auto;display:flex;gap:8px}.header .nav a{color:var(--text2);text-decoration:none;font-size:0.85rem;padding:6px 12px;border-radius:6px}.header .nav a:hover{background:var(--surface2);color:var(--text)}.header .nav a.active{background:var(--purple);color:#fff}
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h2{font-size:1rem;margin-bottom:10px;color:var(--purple);display:flex;align-items:center;gap:6px}
+input,select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:0.85rem;width:100%}input:focus,select:focus{outline:none;border-color:var(--purple)}
+label{font-size:0.75rem;color:var(--text2);margin-bottom:2px;display:block}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--purple);color:#fff}.btn-red{background:var(--red);color:#fff}.btn-sm{padding:5px 12px;font-size:0.75rem}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:0.7rem;font-weight:600}
+.tag-blue{background:#1e3a5f;color:#93c5fd}.tag-green{background:#166534;color:#86efac}.tag-purple{background:#581c87;color:#d8b4fe}.tag-orange{background:#7c2d12;color:#fdba74}.tag-cyan{background:#164e63;color:#67e8f9}.tag-pink{background:#831843;color:#f9a8d4}.tag-emerald{background:#064e3b;color:#6ee7b7}.tag-red{background:#991b1b;color:#fca5a5}
+.empty{text-align:center;padding:20px;color:var(--text2);font-size:0.85rem}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.stat-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.stat-box .num{font-size:1.5rem;font-weight:800}.stat-box .label{font-size:0.7rem;color:var(--text2);margin-top:2px}
+.stat-box.pf .num{color:var(--blue)}.stat-box.im .num{color:var(--green)}.stat-box.mo .num{color:var(--orange)}.stat-box.co .num{color:var(--purple)}.stat-box.em .num{color:var(--cyan)}.stat-box.ac .num{color:var(--pink)}.stat-box.an .num{color:var(--emerald)}.stat-box.total .num{color:var(--yellow)}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:0.8rem}
+th{background:var(--surface2);color:var(--text2);text-align:left;padding:6px 10px;font-weight:600}
+td{padding:6px 10px;border-top:1px solid var(--border)}
+.toast{position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;z-index:999;animation:slideIn .3s}
+.toast-ok{background:#166534;color:#86efac;border:1px solid #22c55e}.toast-err{background:#991b1b;color:#fca5a5;border:1px solid #ef4444}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.hidden{display:none}
+.diagram{display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;flex-wrap:wrap}
+.diagram .node{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center;min-width:90px;cursor:pointer;transition:all .2s}
+.diagram .node:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.diagram .node.pf{border-color:var(--blue)}.diagram .node.im{border-color:var(--green)}.diagram .node.mo{border-color:var(--orange)}.diagram .node.co{border-color:var(--purple)}.diagram .node.em{border-color:var(--cyan)}.diagram .node.ac{border-color:var(--pink)}.diagram .node.an{border-color:var(--emerald)}
+.diagram .node .icon{font-size:1.2rem}.diagram .node .label{font-size:0.65rem;color:var(--text2)}.diagram .node .value{font-weight:700;font-size:0.8rem}
+.diagram .arrow{font-size:1rem;color:var(--purple);opacity:.5}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔗 Cross-Chain Dashboard</h1>
+  <span class="badge">7 Blockchains</span>
+  <div class="nav">
+    <a href="/">Home</a><a href="/admin/pf">PF</a><a href="/admin/im">IM</a><a href="/admin/mo">MO</a><a href="/admin/co">CO</a><a href="/admin/em">EM</a><a href="/admin/ac">AC</a><a href="/admin/an">AN</a><a href="/admin/cross" class="active">Cross-Chain</a>
+  </div>
+</div>
+
+<div class="container">
+  <div id="toast" class="hidden"></div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <!-- Diagrama -->
+  <div class="card">
+    <h2>🗺️ Mapa de Relacionamento</h2>
+    <div class="diagram" id="diagram"></div>
+  </div>
+
+  <!-- Criar Vinculo -->
+  <div class="card">
+    <h2>➕ Criar Vinculo Cross-Chain</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+      <div><label>Origem Tipo</label><select id="vOrigTipo"><option value="PF">PF Pessoa</option><option value="IM">IM Imovel</option><option value="MO">MO Veiculo</option><option value="CO">CO Empresa</option><option value="EM">EM Embarcacao</option><option value="AC">AC Aeronave</option><option value="AN">AN Animal</option></select></div>
+      <div><label>Origem ID</label><input id="vOrigId" placeholder="CPF / Placa / CNPJ / etc"></div>
+      <div><label>Destino Tipo</label><select id="vDestTipo"><option value="IM">IM Imovel</option><option value="MO">MO Veiculo</option><option value="PF">PF Pessoa</option><option value="CO">CO Empresa</option><option value="EM">EM Embarcacao</option><option value="AC">AC Aeronave</option><option value="AN">AN Animal</option></select></div>
+      <div><label>Destino ID</label><input id="vDestId" placeholder="CPF / Placa / CNPJ / etc"></div>
+      <div><label>Vinculo</label><select id="vTipo"><option value="PROPRIETARIO">Proprietario</option><option value="SOCIO">Socio</option><option value="COMPRADOR">Comprador</option><option value="VENDEDOR">Vendedor</option><option value="GARANTIDOR">Garantidor</option><option value="CONDUTOR">Condutor</option><option value="PROPRIETARIO_ANIMAL">Proprietario Animal</option></select></div>
+    </div>
+    <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="createVinculo()">Criar Vinculo</button></div>
+  </div>
+
+  <!-- Vinculos -->
+  <div class="card">
+    <h2>📋 Vinculos Ativos</h2>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      <input id="filterOrig" placeholder="Origem tipo" style="width:100px" oninput="loadVinculos()">
+      <input id="filterDest" placeholder="Destino tipo" style="width:100px" oninput="loadVinculos()">
+      <input id="filterVinc" placeholder="Tipo vinculo" style="width:120px" oninput="loadVinculos()">
+      <button class="btn btn-sm" style="background:var(--surface2);color:var(--text)" onclick="loadVinculos()">🔄</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Origem</th><th>Destino</th><th>Vinculo</th><th>Acoes</th></tr></thead><tbody id="vinculosBody"></tbody></table></div>
+  </div>
+
+  <!-- Busca -->
+  <div class="card">
+    <h2>🔍 Busca por Entidade</h2>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <select id="searchTipo" style="width:100px"><option value="PF">PF</option><option value="IM">IM</option><option value="MO">MO</option><option value="CO">CO</option><option value="EM">EM</option><option value="AC">AC</option><option value="AN">AN</option></select>
+      <input id="searchId" placeholder="ID da entidade" style="flex:1">
+      <button class="btn btn-primary btn-sm" onclick="searchEntity()">Buscar</button>
+    </div>
+    <div id="searchResult"></div>
+  </div>
+</div>
+
+<script>
+function toast(m,ok=true){const e=document.getElementById('toast');e.textContent=m;e.className='toast toast-'+(ok?'ok':'err');e.style.display='block';setTimeout(()=>e.style.display='none',3000)}
+async function api(p,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);const r=await fetch(p,o);const j=await r.json();if(r.status>=400)throw new Error(j.detail||j.message||'Erro');return j}
+
+const COLORS={PF:'blue',IM:'green',MO:'orange',CO:'purple',EM:'cyan',AC:'pink',AN:'emerald'};
+const ICONS={PF:'👤',IM:'🏠',MO:'🚗',CO:'🏢',EM:'⛵',AC:'✈️',AN:'🐾'};
+const LABELS={PF:'Pessoas',IM:'Imoveis',MO:'Veiculos',CO:'Empresas',EM:'Embarcacoes',AC:'Aeronaves',AN:'Animais'};
+
+// ── Stats ────────────────────────────────────────────────────────────
+async function loadStats(){
+  try{
+    const r=await api('/api/health');
+    const d=r.data.blockchains||{};
+    let total=0;
+    let html='';
+    for(const[k,v] of Object.entries(d)){
+      total+=v.count;
+      html+=`<div class="stat-box ${k.toLowerCase()}"><div class="num">${v.count}</div><div class="label">${ICONS[k]} ${k} ${v.label}</div></div>`;
+    }
+    html=`<div class="stat-box total"><div class="num">${total}</div><div class="label">📊 Total Cadastros</div></div>`+html;
+    document.getElementById('statsGrid').innerHTML=html;
+
+    // Diagrama
+    let diag='';
+    const keys=['PF','IM','MO','CO','EM','AC','AN'];
+    keys.forEach((k,i)=>{
+      if(i>0) diag+='<div class="arrow">⇄</div>';
+      diag+=`<div class="node ${k.toLowerCase()}" onclick="location.href='/admin/${k.toLowerCase()}'"><div class="icon">${ICONS[k]}</div><div class="value">${d[k]?.count||0}</div><div class="label">${k}</div></div>`;
+    });
+    document.getElementById('diagram').innerHTML=diag;
+  }catch(e){toast(e.message,false)}
+}
+
+// ── Vinculos ─────────────────────────────────────────────────────────
+async function loadVinculos(){
+  try{
+    const params=new URLSearchParams();
+    const ot=document.getElementById('filterOrig').value;
+    const dt=document.getElementById('filterDest').value;
+    const vt=document.getElementById('filterVinc').value;
+    if(ot)params.set('origem_tipo',ot);if(dt)params.set('destino_tipo',dt);if(vt)params.set('tipo_vinculo',vt);
+    const r=await api(`/api/cross/vinculos?${params}`);
+    const body=document.getElementById('vinculosBody');
+    const refs=r.data||[];
+    if(!refs.length){body.innerHTML='<tr><td colspan="4" class="empty">Nenhum vinculo encontrado.</td></tr>';return}
+    body.innerHTML=refs.map(ref=>`<tr>
+      <td><span class="tag tag-${COLORS[ref.entidade_origem_tipo]||'blue'}">${ICONS[ref.entidade_origem_tipo]||''} ${ref.entidade_origem_tipo}</span> ${ref.entidade_origem_id}</td>
+      <td><span class="tag tag-${COLORS[ref.entidade_destino_tipo]||'green'}">${ICONS[ref.entidade_destino_tipo]||''} ${ref.entidade_destino_tipo}</span> ${ref.entidade_destino_id}</td>
+      <td><span class="tag tag-purple">${ref.tipo_vinculo}</span></td>
+      <td><button class="btn btn-red btn-sm" onclick="deleteVinculo('${ref.entidade_origem_tipo}','${ref.entidade_origem_id}','${ref.entidade_destino_tipo}','${ref.entidade_destino_id}','${ref.tipo_vinculo}')">X</button></td>
+    </tr>`).join('');
+  }catch(e){toast(e.message,false)}
+}
+
+async function createVinculo(){
+  try{
+    await api('/api/cross/vinculo','POST',{
+      origem_tipo:document.getElementById('vOrigTipo').value,
+      origem_id:document.getElementById('vOrigId').value,
+      destino_tipo:document.getElementById('vDestTipo').value,
+      destino_id:document.getElementById('vDestId').value,
+      tipo_vinculo:document.getElementById('vTipo').value,
+    });
+    toast('Vinculo criado!');loadVinculos();loadStats();
+  }catch(e){toast(e.message,false)}
+}
+
+async function deleteVinculo(ot,oi,dt,di,vt){
+  if(!confirm('Remover este vinculo?'))return;
+  try{await api('/api/cross/vinculo','DELETE',{origem_tipo:ot,origem_id:oi,destino_tipo:dt,destino_id:di,tipo_vinculo:vt});toast('Removido.');loadVinculos();loadStats();}catch(e){toast(e.message,false)}
+}
+
+// ── Busca ────────────────────────────────────────────────────────────
+async function searchEntity(){
+  const tipo=document.getElementById('searchTipo').value;
+  const id=document.getElementById('searchId').value;
+  if(!id)return;
+  const el=document.getElementById('searchResult');
+  try{
+    let html=`<h3 style="font-size:0.9rem;margin:8px 0">${ICONS[tipo]} ${tipo}: ${id}</h3>`;
+    const fetches=[];
+
+    if(tipo==='PF'){
+      fetches.push(api(`/api/cross/pf/${id}/veiculos`).catch(()=>({data:[]})));
+      fetches.push(api(`/api/cross/pf/${id}/imoveis`).catch(()=>({data:[]})));
+      const[veics,imov]=await Promise.all(fetches);
+      html+=`<p style="font-size:0.8rem;color:var(--text2)">Veiculos: ${(veics.data||[]).length} | Imoveis: ${(imov.data||[]).length}</p>`;
+      (veics.data||[]).forEach(v=>{html+=`<div style="padding:3px 0;font-size:0.8rem">🚗 ${v.placa} — ${v.vinculo}</div>`});
+      (imov.data||[]).forEach(v=>{html+=`<div style="padding:3px 0;font-size:0.8rem">🏠 ${v.matricula||''} — ${v.vinculo}</div>`});
+    }else if(tipo==='MO'){
+      const pess=await api(`/api/cross/mo/${id}/pessoas`);
+      (pess.data||[]).forEach(v=>{html+=`<div style="padding:3px 0;font-size:0.8rem">👤 ${v.nome||v.cpf} — ${v.vinculo}</div>`});
+    }else if(tipo==='IM'){
+      const pess=await api(`/api/cross/im/${id}/pessoas`);
+      (pess.data||[]).forEach(v=>{html+=`<div style="padding:3px 0;font-size:0.8rem">👤 ${v.nome||v.cpf} — ${v.vinculo}</div>`});
+    }else{
+      html+=`<div class="empty">Busca disponivel para PF, IM e MO.</div>`;
+    }
+    el.innerHTML=html||'<div class="empty">Nenhum vinculo encontrado.</div>';
+  }catch(e){el.innerHTML=`<div style="color:var(--red);font-size:0.85rem">Erro: ${e.message}</div>`}
+}
+
+loadStats();loadVinculos();
+</script>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin PF — Blockchain de Pessoas Físicas</title>
+<style>
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1e293b;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#3b82f6;--accent2:#8b5cf6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--cyan:#06b6d4;--orange:#f97316}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#1e3a5f,#0f172a);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50}
+.header h1{font-size:1.3rem;font-weight:700}
+.header .nav{margin-left:auto;display:flex;gap:8px}
+.header .nav a{color:var(--text2);text-decoration:none;font-size:0.85rem;padding:6px 12px;border-radius:6px;transition:all .2s}
+.header .nav a:hover{background:var(--surface2);color:var(--text)}
+.header .nav a.active{background:var(--accent);color:#fff}
+.badge{background:var(--accent);padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:600}
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.grid2{display:grid;grid-template-columns:350px 1fr;gap:16px}
+@media(max-width:768px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h2{font-size:1rem;margin-bottom:10px;color:var(--cyan);display:flex;align-items:center;gap:6px}
+.card h3{font-size:0.9rem;margin:8px 0 6px;color:var(--accent2)}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:0.85rem;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+label{font-size:0.75rem;color:var(--text2);margin-bottom:2px;display:block}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-green{background:var(--green);color:#000}.btn-purple{background:var(--accent2);color:#fff}
+.btn-red{background:var(--red);color:#fff}.btn-sm{padding:5px 12px;font-size:0.75rem}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:0.7rem;font-weight:600}
+.tag-green{background:#166534;color:#86efac}.tag-red{background:#991b1b;color:#fca5a5}
+.tag-yellow{background:#854d0e;color:#fde047}.tag-blue{background:#1e3a5f;color:#93c5fd}
+.tag-purple{background:#581c87;color:#d8b4fe}.tag-cyan{background:#164e63;color:#67e8f9}
+.empty{text-align:center;padding:30px;color:var(--text2);font-size:0.85rem}
+.empty .icon{font-size:2.5rem;margin-bottom:8px}
+.chain-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:6px;cursor:pointer;transition:all .2s;display:flex;justify-content:space-between;align-items:center}
+.chain-item:hover{border-color:var(--accent)}.chain-item.sel{border-color:var(--accent);background:rgba(59,130,246,.1)}
+.chain-item .info{flex:1}.chain-item .name{font-weight:600;font-size:0.9rem}
+.chain-item .cpf{color:var(--text2);font-size:0.8rem}.chain-item .meta{text-align:right;font-size:0.75rem;color:var(--text2)}
+.tl-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.status-bar{background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;gap:16px;font-size:0.8rem;margin-bottom:12px;flex-wrap:wrap}
+.status-bar .stat{display:flex;flex-direction:column}.status-bar .stat-label{color:var(--text2);font-size:0.7rem}.status-bar .stat-value{font-weight:700;font-size:1rem}
+.tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.tab{padding:7px 14px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);font-size:0.85rem;transition:all .2s}
+.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.hidden{display:none}
+.toast{position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;z-index:999;animation:slideIn .3s}
+.toast-ok{background:#166534;color:#86efac;border:1px solid #22c55e}
+.toast-err{background:#991b1b;color:#fca5a5;border:1px solid #ef4444}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:550px;width:92%;max-height:80vh;overflow-y:auto}
+.modal h2{margin-bottom:12px;font-size:1.1rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:500px){.form-grid{grid-template-columns:1fr}}
+.search-box{position:relative;margin-bottom:10px}
+.search-box input{padding-left:30px}
+.search-box::before{content:"🔍";position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:0.8rem}
+/* Grafo */
+#graphCanvas{width:100%;height:350px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>👤 Admin PF</h1>
+  <span class="badge">ECDSA</span>
+  <div class="nav">
+    <a href="/">Home</a>
+    <a href="/admin/pf" class="active">PF</a>
+    <a href="/admin/im">IM</a>
+    <a href="/admin/mo">MO</a>
+    <a href="/admin/cross">Cross-Chain</a>
+  </div>
+</div>
+
+<div class="container">
+  <div id="toast" class="hidden" style="position:fixed;top:16px;right:16px;z-index:999"></div>
+  <div class="grid2">
+    <!-- Sidebar: Lista -->
+    <div>
+      <div class="card">
+        <h2>📋 Pessoas Físicas</h2>
+        <div class="search-box"><input id="searchPf" placeholder="Buscar por nome ou CPF..." oninput="filterPf()"></div>
+        <div id="pfList" style="max-height:500px;overflow-y:auto"></div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-primary btn-sm" onclick="openNewPf()">+ Nova PF</button>
+          <button class="btn btn-sm" style="background:var(--surface2);color:var(--text)" onclick="loadPfList()">🔄</button>
+        </div>
+      </div>
+      <!-- Grafo -->
+      <div class="card">
+        <h2>🕸️ Grafo Familiar</h2>
+        <canvas id="graphCanvas"></canvas>
+        <div class="btn-row">
+          <button class="btn btn-sm btn-purple" onclick="renderGraph()">Desenhar Grafo</button>
+          <button class="btn btn-sm" style="background:var(--surface2);color:var(--text)" onclick="loadGraph()">Carregar</button>
+        </div>
+        <div id="graphStats" style="font-size:0.8rem;color:var(--text2);margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- Main: Detalhe -->
+    <div>
+      <div id="detailView">
+        <div class="empty"><div class="icon">👤</div>Selecione uma pessoa na lista ao lado.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Novo Evento</h2>
+    <div id="modalBody"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-primary btn-sm" id="modalSubmit">Registrar</button>
+      <button class="btn btn-red btn-sm" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='';
+let currentCpf='';
+let allPfs=[];
+let graphData={nodes:{},edges:[]};
+
+function toast(m,ok=true){const e=document.getElementById('toast');e.textContent=m;e.className='toast-'+(ok?'ok':'err');e.style.display='block';setTimeout(()=>e.style.display='none',3000)}
+async function api(p,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);const r=await fetch(API+p,o);const j=await r.json();if(r.status>=400)throw new Error(j.detail||j.message||'Erro');return j}
+
+// ── PF List ──────────────────────────────────────────────────────────
+async function loadPfList(){
+  try{
+    const r=await api('/api/chains');
+    allPfs=r.data||[];
+    renderPfList(allPfs);
+  }catch(e){toast(e.message,false)}
+}
+function renderPfList(pfs){
+  const el=document.getElementById('pfList');
+  if(!pfs.length){el.innerHTML='<div class="empty">Nenhuma PF encontrada.</div>';return}
+  el.innerHTML=pfs.map(p=>`
+    <div class="chain-item ${p.cpf===currentCpf?'sel':''}" onclick="selectPf('${p.cpf}')">
+      <div class="info"><div class="name">${p.nome||'Sem nome'}</div><div class="cpf">CPF: ${p.cpf}</div></div>
+      <div class="meta">${p.blocos} bloco(s)<br>${p.assinado}/${p.blocos} assinado(s)</div>
+    </div>
+  `).join('');
+}
+function filterPf(){
+  const q=document.getElementById('searchPf').value.toLowerCase();
+  const f=allPfs.filter(p=>(p.nome||'').toLowerCase().includes(q)||p.cpf.includes(q));
+  renderPfList(f);
+}
+
+// ── Select PF ────────────────────────────────────────────────────────
+async function selectPf(cpf){
+  currentCpf=cpf;
+  document.querySelectorAll('.chain-item').forEach(e=>e.classList.remove('sel'));
+  event.currentTarget.classList.add('sel');
+  await loadDetail();
+}
+
+async function loadDetail(){
+  const dv=document.getElementById('detailView');
+  try{
+    const[info,tl,val]=await Promise.all([
+      api(`/api/chain/${currentCpf}`),
+      api(`/api/chain/${currentCpf}/timeline`),
+      api(`/api/chain/${currentCpf}/validate?require_signatures=true`),
+    ]);
+    const timeline=tl.data||[];
+    const emojis={NASCIMENTO:'👶',ADOCAO:'👨‍👩‍👧',CASAMENTO:'💍',DIVORCIO:'💔',OBITO:'⚰️',ALTERACAO_NOME:'✏️',VACINACAO:'💉',PROTESE:'🩺',DISVINC_MATERNA:'🔗',DISVINC_PATerna:'🔗'};
+    const colors={NASCIMENTO:'tag-green',CASAMENTO:'tag-blue',DIVORCIO:'tag-red',ADOCAO:'tag-purple',OBITO:'tag-red',VACINACAO:'tag-green',PROTESE:'tag-cyan',ALTERACAO_NOME:'tag-yellow'};
+
+    dv.innerHTML=`
+      <div class="status-bar">
+        <div class="stat"><span class="stat-label">CPF</span><span class="stat-value">${info.data.cpf}</span></div>
+        <div class="stat"><span class="stat-label">Nome</span><span class="stat-value">${info.data.nome||'-'}</span></div>
+        <div class="stat"><span class="stat-label">Blocos</span><span class="stat-value">${info.data.blocos}</span></div>
+        <div class="stat"><span class="stat-label">Valida</span><span class="stat-value">${val.data.valida?'✅':'❌'}</span></div>
+        <div class="stat"><span class="stat-label">Assinador</span><span class="stat-value">${info.data.signer||'Nenhum'}</span></div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="showMainTab('timeline',this)">Timeline</div>
+        <div class="tab" onclick="showMainTab('events',this)">Eventos</div>
+        <div class="tab" onclick="showMainTab('cross',this)">Cross-Chain</div>
+        <div class="tab" onclick="showMainTab('config',this)">Config</div>
+      </div>
+
+      <div id="mtimeline">
+        <div class="card"><h2>📅 Timeline</h2>
+          ${timeline.length===0?'<div class="empty">Sem eventos</div>':
+            timeline.map(ev=>`
+              <div class="tl-item">
+                <div class="tl-dot" style="background:${ev.tipo==='OBITO'?'var(--red)':ev.tipo==='CASAMENTO'?'var(--accent)':ev.tipo==='NASCIMENTO'?'var(--green)':'var(--text2)'}"></div>
+                <div style="flex:1">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span>${emojis[ev.tipo]||''} <span class="tag ${colors[ev.tipo]||'tag-blue'}">${ev.tipo}</span></span>
+                    <span style="font-size:0.7rem;color:var(--text2)">${ev.data_registro}</span>
+                  </div>
+                  <div style="font-size:0.75rem;color:var(--text2);margin-top:2px">
+                    Hash: ${ev.hash}... ${ev.assinado?'<span class="tag tag-green">ASS: '+ev.emissor+'</span>':''}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+
+      <div id="mevents" class="hidden">
+        <div class="card"><h2>⚡ Registrar Evento</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px">
+            <button class="btn btn-primary btn-sm" onclick="openEvt('casamento')">💍 Casamento</button>
+            <button class="btn btn-primary btn-sm" onclick="openEvt('divorcio')">💔 Divórcio</button>
+            <button class="btn btn-primary btn-sm" onclick="openEvt('adocao')">👨‍👩‍👧 Adoção</button>
+            <button class="btn btn-red btn-sm" onclick="openEvt('obito')">⚰️ Óbito</button>
+            <button class="btn btn-sm" style="background:var(--yellow);color:#000" onclick="openEvt('alteracao_nome')">✏️ Nome</button>
+            <button class="btn btn-sm" style="background:var(--cyan);color:#000" onclick="openEvt('vacina')">💉 Vacina</button>
+            <button class="btn btn-sm" style="background:var(--accent2);color:#fff" onclick="openEvt('protese')">🩺 Prótese</button>
+            <button class="btn btn-sm" style="background:var(--orange);color:#000" onclick="openEvt('disvinculacao')">🔗 Disvinc.</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="mcross" class="hidden">
+        <div class="card"><h2>🔗 Cross-Chain</h2><div id="crossContent">Carregando...</div></div>
+      </div>
+
+      <div id="mconfig" class="hidden">
+        <div class="card"><h2>⚙️ Configuração</h2>
+          <div class="btn-row" style="flex-direction:column">
+            <button class="btn btn-purple btn-sm" onclick="configureSigner()">🔑 Configurar Assinador ECDSA</button>
+            <button class="btn btn-sm" style="background:var(--green);color:#000" onclick="exportChain()">📥 Exportar JSON</button>
+            <button class="btn btn-red btn-sm" onclick="deleteChain()">🗑️ Remover Cadeia</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }catch(e){dv.innerHTML='<div class="empty">Erro: '+e.message+'</div>'}
+}
+
+function showMainTab(name,el){
+  document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['mtimeline','mevents','mcross','mconfig'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  const map={timeline:'mtimeline',events:'mevents',cross:'mcross',config:'mconfig'};
+  document.getElementById(map[name]).classList.remove('hidden');
+  if(name==='cross')loadCrossChain();
+}
+
+// ── Cross-Chain ──────────────────────────────────────────────────────
+async function loadCrossChain(){
+  const el=document.getElementById('crossContent');
+  try{
+    const[r]=await Promise.all([
+      api(`/api/cross/pf/${currentCpf}/veiculos`),
+      api(`/api/cross/pf/${currentCpf}/imoveis`),
+    ]);
+    const veics=r.data||[];
+    el.innerHTML=`
+      <h3>Veículos vinculados</h3>
+      ${veics.length===0?'<div style="color:var(--text2);font-size:0.85rem">Nenhum veículo vinculado.</div>':
+        veics.map(v=>`<div style="padding:4px 0;font-size:0.85rem">🚗 ${v.placa} — ${v.vinculo}</div>`).join('')}
+      <div class="btn-row"><button class="btn btn-sm btn-primary" onclick="openVinculo('MO')">+ Vincular Veículo</button></div>
+    `;
+  }catch(e){el.innerHTML='Erro: '+e.message}
+}
+
+// ── Event Modal ──────────────────────────────────────────────────────
+const EVT_FORMS={
+  casamento:{title:'💍 Casamento',fields:[
+    {id:'f1',label:'CPF do Cônjuge',ph:'98765432100'},{id:'f2',label:'Nome do Cônjuge',ph:'João Silva'},
+    {id:'f3',label:'Data (DD/MM/AAAA)',ph:'20/06/2022'},{id:'f4',label:'Regime de Bens',type:'sel',opts:['COMUNHAO_PARCIAL','SEPARACAO_TOTAL','COMUNHAO_UNIVERSAL']},
+    {id:'f5',label:'Cidade',ph:'São Paulo'},{id:'f6',label:'UF',ph:'SP'},
+  ]},
+  divorcio:{title:'💔 Divórcio',fields:[
+    {id:'f1',label:'Data (DD/MM/AAAA)',ph:'05/01/2025'},{id:'f2',label:'Tipo',type:'sel',opts:['CONSENSUAL','JUDICIAL']},
+    {id:'f3',label:'Guarda',type:'sel',opts:['','COMPARTILHADA','MATERNA','PATerna']},{id:'f4',label:'Pensão',type:'sel',opts:['Não','Sim']},
+  ]},
+  adocao:{title:'👨‍👩‍👧 Adoção',fields:[
+    {id:'f1',label:'Data (DD/MM/AAAA)',ph:'10/11/2023'},{id:'f2',label:'Mãe Adotiva',ph:'Maria Clara'},
+    {id:'f3',label:'Pai Adotivo',ph:''},{id:'f4',label:'Nome Adotivo',ph:''},
+  ]},
+  obito:{title:'⚰️ Óbito',fields:[
+    {id:'f1',label:'Data (DD/MM/AAAA)',ph:'01/01/2050'},{id:'f2',label:'Cidade',ph:'São Paulo'},
+    {id:'f3',label:'UF',ph:'SP'},{id:'f4',label:'Causa',ph:''},
+  ]},
+  alteracao_nome:{title:'✏️ Alterar Nome',fields:[
+    {id:'f1',label:'Nome Anterior',ph:'Maria Clara'},{id:'f2',label:'Nome Novo',ph:'Maria Clara Santos'},
+    {id:'f3',label:'Data',ph:'15/03/2018'},{id:'f4',label:'Motivo',ph:'Casamento'},
+  ]},
+  vacina:{title:'💉 Vacinação',fields:[
+    {id:'f1',label:'Vacina',ph:'COVID-19'},{id:'f2',label:'Data',ph:'10/05/2024'},
+    {id:'f3',label:'Dose',ph:'1ª dose'},{id:'f4',label:'Lote',ph:''},{id:'f5',label:'Fabricante',ph:'Pfizer'},
+    {id:'f6',label:'UBS',ph:''},{id:'f7',label:'Cidade',ph:''},{id:'f8',label:'UF',ph:''},
+  ]},
+  protese:{title:'🩺 Prótese',fields:[
+    {id:'f1',label:'Nome',ph:'Prótese de Joelho'},{id:'f2',label:'Data Implantação',ph:'15/03/2023'},
+    {id:'f3',label:'Tipo',ph:'Ortopédica'},{id:'f4',label:'Marca/Modelo',ph:''},
+    {id:'f5',label:'Médico',ph:''},{id:'f6',label:'Hospital',ph:''},
+    {id:'f7',label:'Cidade',ph:''},{id:'f8',label:'UF',ph:''},
+  ]},
+  disvinculacao:{title:'🔗 Disvinculação Parental',fields:[
+    {id:'f1',label:'Data',ph:'15/03/2026'},{id:'f2',label:'Motivo',ph:'Ausência'},
+    {id:'f3',label:'Tipo',type:'sel',opts:['M (Materna)','P (Paterna)']},
+  ]},
+};
+let curEvtType='';
+function openEvt(t){
+  curEvtType=t;const f=EVT_FORMS[t];
+  document.getElementById('modalTitle').textContent=f.title;
+  document.getElementById('modalBody').innerHTML=f.fields.map(fd=>{
+    if(fd.type==='sel')return`<div style="margin-bottom:8px"><label>${fd.label}</label><select id="${fd.id}">${fd.opts.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;
+    return`<div style="margin-bottom:8px"><label>${fd.label}</label><input id="${fd.id}" placeholder="${fd.ph||''}"></div>`;
+  }).join('');
+  document.getElementById('modalSubmit').onclick=submitEvt;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('active')}
+const v=id=>document.getElementById(id)?.value||'';
+
+async function submitEvt(){
+  try{
+    const cpf=currentCpf;
+    if(curEvtType==='casamento')await api(`/api/chain/${cpf}/event/casamento`,'POST',{cpf,nome_conjuge:v('f2'),cpf_conjuge:v('f1'),data_casamento:v('f3'),regime_bens:v('f4'),cidade:v('f5'),uf:v('f6')});
+    else if(curEvtType==='divorcio')await api(`/api/chain/${cpf}/event/divorcio`,'POST',{cpf,data_divorcio:v('f1'),tipo:v('f2'),guarda_filhos:v('f3')||null,pensao_alimenticia:v('f4')==='Sim'});
+    else if(curEvtType==='adocao')await api(`/api/chain/${cpf}/event/adocao`,'POST',{cpf,data_adocao:v('f1'),nome_mae_adotiva:v('f2'),nome_pai_adotivo:v('f3')||null,nome_adotivo:v('f4')||null,mantem_nome_biologico:false});
+    else if(curEvtType==='obito')await api(`/api/chain/${cpf}/event/obito`,'POST',{cpf,data_obito:v('f1'),cidade_obito:v('f2'),uf_obito:v('f3'),causa_morte:v('f4')||null});
+    else if(curEvtType==='alteracao_nome')await api(`/api/chain/${cpf}/event/alteracao_nome`,'POST',{cpf,nome_anterior:v('f1'),nome_novo:v('f2'),data_alteracao:v('f3'),motivo:v('f4')});
+    else if(curEvtType==='vacina')await api(`/api/chain/${cpf}/event/vacina`,'POST',{cpf,nome_vacina:v('f1'),data_vacinacao:v('f2'),dose:v('f3'),lote:v('f4'),fabricante:v('f5'),unidade_saude:v('f6'),cidade:v('f7'),uf:v('f8')});
+    else if(curEvtType==='protese')await api(`/api/chain/${cpf}/event/protese`,'POST',{cpf,nome_protese:v('f1'),data_implantacao:v('f2'),tipo:v('f3'),marca_modelo:v('f4'),medico_responsavel:v('f5'),hospital_clinica:v('f6'),cidade:v('f7'),uf:v('f8')});
+    else if(curEvtType==='disvinculacao'){const tipo=v('f3').includes('P')?'P':'M';await api(`/api/chain/${cpf}/event/disvinculacao`,'POST',{cpf,data_disvinculacao:v('f1'),motivo:v('f2'),tipo});}
+    toast('Evento registrado!');closeModal();await loadDetail();loadPfList();
+  }catch(e){toast(e.message,false)}
+}
+
+// ── New PF ───────────────────────────────────────────────────────────
+function openNewPf(){
+  document.getElementById('modalTitle').textContent='👤 Nova Pessoa Física';
+  document.getElementById('modalBody').innerHTML=`
+    <div class="form-grid">
+      <div><label>CPF</label><input id="nCpf" placeholder="12345678901"></div>
+      <div><label>Nome</label><input id="nNome" placeholder="Maria Clara"></div>
+      <div><label>Data Nasc.</label><input id="nData" placeholder="15/03/2000"></div>
+      <div><label>Sexo</label><select id="nSexo"><option value="F">F</option><option value="M">M</option></select></div>
+      <div><label>Cidade</label><input id="nCid" placeholder="São Paulo"></div>
+      <div><label>UF</label><input id="nUf" placeholder="SP" maxlength="2"></div>
+      <div><label>Mãe</label><input id="nMae" placeholder="Ana Paula"></div>
+      <div><label>Pai</label><input id="nPai" placeholder=""></div>
+    </div>`;
+  document.getElementById('modalSubmit').onclick=submitNewPf;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+async function submitNewPf(){
+  const cpf=v('nCpf').replace(/\D/g,'');
+  if(!cpf||cpf.length!==11)return toast('CPF inválido',false);
+  try{
+    await api(`/api/chain?cpf=${cpf}`,'POST',{difficulty:2,signer_label:'Cartório'});
+    await api(`/api/chain/${cpf}/event/nascimento`,'POST',{cpf,nome_completo:v('nNome'),data_nascimento:v('nData'),sexo:v('nSexo'),cidade_nascimento:v('nCid'),uf_nascimento:v('nUf'),nome_mae:v('nMae'),nome_pai:v('nPai')||null});
+    toast('PF criada!');closeModal();loadPfList();
+  }catch(e){toast(e.message,false)}
+}
+
+// ── Config ───────────────────────────────────────────────────────────
+async function configureSigner(){
+  const label=prompt('Nome da autoridade:','Cartório');
+  if(!label)return;
+  try{await api(`/api/chain/${currentCpf}/sign`,'POST',{label});toast('Assinador configurado!');loadDetail();}catch(e){toast(e.message,false)}
+}
+async function exportChain(){
+  try{const r=await api(`/api/chain/${currentCpf}/export`);const blob=new Blob([JSON.stringify(r.data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`pf_${currentCpf}.json`;a.click();}catch(e){toast(e.message,false)}
+}
+async function deleteChain(){
+  if(!confirm('Remover esta cadeia?'))return;
+  try{await api(`/api/chain/${currentCpf}`,'DELETE');toast('Removida.');loadPfList();document.getElementById('detailView').innerHTML='<div class="empty"><div class="icon">👤</div>Selecione uma pessoa.</div>';}catch(e){toast(e.message,false)}
+}
+
+// ── Grafo ────────────────────────────────────────────────────────────
+async function loadGraph(){
+  try{
+    const r=await api('/api/pf/graph');
+    graphData=r.data;
+    const s=await api('/api/pf/graph/stats');
+    document.getElementById('graphStats').textContent=`${s.data.total_pessoas} pessoas | ${s.data.total_relacionamentos} relacionamentos | ${s.data.ativos} ativos`;
+    renderGraph();
+  }catch(e){toast(e.message,false)}
+}
+function renderGraph(){
+  const canvas=document.getElementById('graphCanvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth;canvas.height=350;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const nodes=Object.values(graphData.nodes||{});
+  const edges=graphData.edges||[];
+  if(!nodes.length){ctx.fillStyle='#94a3b8';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText('Nenhum nó no grafo.',canvas.width/2,canvas.height/2);return}
+  // Layout circular simples
+  const cx=canvas.width/2,cy=canvas.height/2,r=Math.min(cx,cy)-40;
+  const pos={};
+  nodes.forEach((n,i)=>{const a=(2*Math.PI*i)/nodes.length-Math.PI/2;pos[n.cpf]={x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)}});
+  // Arestas
+  edges.filter(e=>e.ativo).forEach(e=>{
+    const a=pos[e.from_cpf],b=pos[e.to_cpf];
+    if(!a||!b)return;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle=e.tipo==='CONJUGE'?'#3b82f6':e.tipo.includes('MAE')||e.tipo.includes('PAI')?'#22c55e':'#94a3b8';
+    ctx.lineWidth=1.5;ctx.stroke();
+    // Label
+    ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
+    ctx.fillText(e.tipo,(a.x+b.x)/2,(a.y+b.y)/2-4);
+  });
+  // Nós
+  nodes.forEach(n=>{
+    const p=pos[n.cpf];if(!p)return;
+    ctx.beginPath();ctx.arc(p.x,p.y,16,0,Math.PI*2);
+    ctx.fillStyle=n.ativo?'#3b82f6':'#ef4444';ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='bold 8px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText((n.nome||'?').split(' ')[0],p.x,p.y);
+  });
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+loadPfList();loadGraph();
+</script>
+</body>
+</html>

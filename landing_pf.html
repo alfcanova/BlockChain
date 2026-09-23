@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockchain PF — Eventos Vitais</title>
+<style>
+  :root {
+    --bg: #0a0e17; --surface: #111827; --surface2: #1e293b;
+    --border: #334155; --text: #e2e8f0; --text2: #94a3b8;
+    --accent: #3b82f6; --accent2: #8b5cf6; --green: #22c55e;
+    --red: #ef4444; --yellow: #eab308; --cyan: #06b6d4;
+    --gradient1: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1a1040 100%);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  
+  .hero {
+    background: var(--gradient1);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 32px 48px;
+    text-align: center;
+  }
+  .hero h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 12px; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { font-size: 1.1rem; color: var(--text2); max-width: 600px; margin: 0 auto 24px; }
+  .hero .badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .hero .badge { background: var(--surface2); border: 1px solid var(--border); padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; color: var(--text2); }
+  .hero .badge strong { color: var(--cyan); }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
+
+  .section { margin-bottom: 48px; }
+  .section h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 16px; color: var(--accent2); }
+  .section p { color: var(--text2); line-height: 1.7; margin-bottom: 16px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; transition: all 0.3s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card .icon { font-size: 2rem; margin-bottom: 12px; }
+  .card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .card p { font-size: 0.9rem; color: var(--text2); margin-bottom: 0; }
+
+  .timeline-demo {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; margin-top: 16px;
+  }
+  .tl-item {
+    display: flex; gap: 16px; padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tl-item:last-child { border-bottom: none; }
+  .tl-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .tl-dot.green { background: var(--green); }
+  .tl-dot.blue { background: var(--accent); }
+  .tl-dot.purple { background: var(--accent2); }
+  .tl-dot.yellow { background: var(--yellow); }
+  .tl-dot.red { background: var(--red); }
+  .tl-dot.cyan { background: var(--cyan); }
+  .tl-content h4 { font-size: 0.95rem; margin-bottom: 4px; }
+  .tl-content p { font-size: 0.85rem; color: var(--text2); margin: 0; }
+  .tl-content .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 8px;
+    font-size: 0.7rem; font-weight: 600; margin-left: 8px;
+  }
+  .tag-green { background: #166534; color: #86efac; }
+  .tag-blue { background: #1e3a5f; color: #93c5fd; }
+  .tag-red { background: #991b1b; color: #fca5a5; }
+  .tag-purple { background: #581c87; color: #d8b4fe; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .stat-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; text-align: center;
+  }
+  .stat-box .num { font-size: 1.8rem; font-weight: 800; color: var(--cyan); }
+  .stat-box .label { font-size: 0.8rem; color: var(--text2); margin-top: 4px; }
+
+  .tech-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .tech-tag {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; color: var(--text2);
+  }
+
+  .cta-section { text-align: center; padding: 48px 24px; }
+  .btn-cta {
+    display: inline-block; padding: 14px 32px; background: var(--accent);
+    color: white; text-decoration: none; border-radius: 10px; font-weight: 700;
+    font-size: 1rem; transition: all 0.3s; margin: 8px;
+  }
+  .btn-cta:hover { background: #2563eb; transform: translateY(-2px); }
+  .btn-cta.secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+
+  .footer { text-align: center; padding: 24px; color: var(--text2); font-size: 0.85rem; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Blockchain <span>PF</span></h1>
+  <p>Registro imutável de eventos vitais de Pessoas Físicas — do nascimento ao óbito, com assinaturas digitais ECDSA.</p>
+  <div class="badges">
+    <span class="badge"><strong>ECDSA P-256</strong> Assinatura Digital</span>
+    <span class="badge"><strong>SHA-256</strong> Integridade</span>
+    <span class="badge"><strong>PoW</strong> Proof of Work</span>
+    <span class="badge"><strong>v3.0</strong></span>
+  </div>
+</div>
+
+<div class="container">
+  <!-- O que é -->
+  <div class="section">
+    <h2>O que é?</h2>
+    <p>
+      Uma cadeia de blocos imutável que registra <strong>toda a vida de uma pessoa</strong>,
+      desde o nascimento (bloco gênesis) até o óbito. Cada evento — casamento, divórcio, adoção,
+      vacinação, prótese, CNH, título de eleitor, escolaridade — é um bloco encadeado,
+      assinado digitalmente com ECDSA (P-256/SECP256R1).
+    </p>
+    <p>
+      O sistema suporta <strong>múltiplas autoridades assinantes</strong> (cartórios, hospitais, delegacias),
+      validação integral da cadeia, e um grafo de relacionamentos entre pessoas (família, cônjuges, filhos).
+    </p>
+  </div>
+
+  <!-- Funcionalidades -->
+  <div class="section">
+    <h2>Funcionalidades</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">👶</div>
+        <h3>Nascimento</h3>
+        <p>Bloco gênesis com dados completos: CPF, nome, data, sexo, cidade, UF, mãe, pai.</p>
+      </div>
+      <div class="card">
+        <div class="icon">💍</div>
+        <h3>Casamento</h3>
+        <p>Registro de casamento com regime de bens, cônjuges e dados do cartório.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚖️</div>
+        <h3>Divórcio</h3>
+        <p>Consensual ou judicial, guarda de filhos e pensão alimentícia.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🏥</div>
+        <h3>Vacinação</h3>
+        <p>Carteira de vacinação digital com lote, fabricante e dose.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🦿</div>
+        <h3>Prótese/Implante</h3>
+        <p>Registro de próteses e implantes com médico responsável e hospital.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📜</div>
+        <h3>Alteração de Nome</h3>
+        <p>Correção administrativa ou judicial de nome completo.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔗</div>
+        <h3>Grafo Familiar</h3>
+        <p>Conexões entre pessoas: pais, filhos, cônjuges, ex-cônjuges.</p>
+      </div>
+      <div class="card">
+        <div class="icon">✍️</div>
+        <h3>Assinaturas ECDSA</h3>
+        <p>Cada bloco pode ser assinado por autoridades (cartório, hospital, etc).</p>
+      </div>
+      <div class="card">
+        <div class="icon">🪪</div>
+        <h3>CNH</h3>
+        <p>Carteira Nacional de Habilitação: obtenção, renovação, categorias, pontuação e suspensão.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🗳️</div>
+        <h3>Título de Eleitor</h3>
+        <p>Registro eleitoral: zona, seção, município, situação e transferências.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🎓</div>
+        <h3>Escolaridade</h3>
+        <p>Histórico escolar: fundamental, médio, técnico, superior, pós-graduação e diplomas.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔮</div>
+        <h3>Predição de Eventos</h3>
+        <p>Machine learning para prever próximos eventos vitais.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline Demo -->
+  <div class="section">
+    <h2>Exemplo de Timeline</h2>
+    <div class="timeline-demo">
+      <div class="tl-item">
+        <div class="tl-dot green"></div>
+        <div class="tl-content">
+          <h4>Bloco #0 — NASCIMENTO <span class="tag tag-green">GENESIS</span></h4>
+          <p>Maria Clara de Oliveira | CPF: 123.456.789-00 | 15/03/2000 | São Paulo, SP</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot blue"></div>
+        <div class="tl-content">
+          <h4>Bloco #1 — VACINAÇÃO <span class="tag tag-blue">SAÚDE</span></h4>
+          <p>COVID-19 (Pfizer) | 1ª dose | 20/04/2021 | UBS Central</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot purple"></div>
+        <div class="tl-content">
+          <h4>Bloco #2 — CASAMENTO <span class="tag tag-purple">FAMÍLIA</span></h4>
+          <p>João Pedro Santos | Comunhão Parcial | 10/06/2022 | Cartório SP</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot cyan"></div>
+        <div class="tl-content">
+          <h4>Bloco #3 — PRÓTESE <span class="tag tag-blue">SAÚDE</span></h4>
+          <p>Prótese de Joelho Direito | 15/08/2023 | Hospital São Paulo</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot yellow"></div>
+        <div class="tl-content">
+          <h4>Bloco #4 — DIVÓRCIO <span class="tag tag-red">FAMÍLIA</span></h4>
+          <p>Consensual | 01/12/2024 | Guarda Compartilhada</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot green"></div>
+        <div class="tl-content">
+          <h4>Bloco #5 — CNH <span class="tag tag-blue">DOCUMENTO</span></h4>
+          <p>Categoria B | DETRAN-SP | Válida até 2030 | 0 pontos</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot cyan"></div>
+        <div class="tl-content">
+          <h4>Bloco #6 — TÍTULO DE ELEITOR <span class="tag tag-blue">DOCUMENTO</span></h4>
+          <p>Zona 0123 | Seção 0045 | São Paulo, SP | Situação Regular</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot purple"></div>
+        <div class="tl-content">
+          <h4>Bloco #7 — ESCOLARIDADE <span class="tag tag-purple">EDUCAÇÃO</span></h4>
+          <p>Superior | USP | Ciência da Computação | Concluído 2022</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estatísticas -->
+  <div class="section">
+    <h2>Estatísticas</h2>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="num">13</div>
+        <div class="label">Tipos de Evento</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">256</div>
+        <div class="label">Bits ECDSA</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">SHA-256</div>
+        <div class="label">Hash</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">PoW</div>
+        <div class="label">Consensus</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stack Técnica -->
+  <div class="section">
+    <h2>Stack Técnica</h2>
+    <div class="tech-list">
+      <span class="tech-tag">Python 3.14</span>
+      <span class="tech-tag">FastAPI</span>
+      <span class="tech-tag">ECDSA P-256</span>
+      <span class="tech-tag">SHA-256</span>
+      <span class="tech-tag">Proof of Work</span>
+      <span class="tech-tag">SQLite</span>
+      <span class="tech-tag">Pydantic</span>
+      <span class="tech-tag">JWT Auth</span>
+      <span class="tech-tag">Cross-chain</span>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <a href="/api/docs" class="btn-cta">📄 Ver API Docs (Swagger)</a>
+  <a href="/api/chains" class="btn-cta secondary">🔗 Listar Cadeias</a>
+</div>
+
+<div class="footer">
+  Blockchain PF v3.0 — Eventos Vitais de Pessoas Físicas | ECDSA P-256 | SHA-256 | Proof of Work
+</div>
+
+</body>
+</html>

@@ -1,0 +1,146 @@
+{
+  "difficulty": 2,
+  "chain": [
+    {
+      "index": 0,
+      "timestamp": 1787190911.3410223,
+      "data": {
+        "evento_tipo": "NASCIMENTO",
+        "payload": {
+          "evento_tipo": "NASCIMENTO",
+          "cpf": "12345678901",
+          "nome_completo": "Maria Clara de Oliveira Santos",
+          "nome_social": "Maria Clara de Oliveira Santos",
+          "data_nascimento": "15/03/2000",
+          "sexo": "F",
+          "cidade_nascimento": "S\u00e3o Paulo",
+          "uf_nascimento": "SP",
+          "nome_mae": "Ana Paula de Oliveira",
+          "nome_pai": "Jo\u00e3o Carlos Santos",
+          "nome_conjuge": null,
+          "status_vivo": true,
+          "historico_nomes": [
+            "Maria Clara de Oliveira Santos"
+          ],
+          "parentela": {
+            "mae": {
+              "nome": "Ana Paula de Oliveira",
+              "ativo": true
+            },
+            "pai": {
+              "nome": "Jo\u00e3o Carlos Santos",
+              "ativo": true
+            }
+          }
+        },
+        "hash_cadeia": "GENESIS"
+      },
+      "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "nonce": 41,
+      "hash": "001377580115c08f5c62a098f2ea909efdfeade7f0da8b32104d1c157a822e73",
+      "difficulty": 2
+    },
+    {
+      "index": 1,
+      "timestamp": 1787190911.341921,
+      "data": {
+        "evento_tipo": "ALTERACAO_NOME",
+        "payload": {
+          "evento_tipo": "ALTERACAO_NOME",
+          "cpf": "12345678901",
+          "nome_anterior": "Maria Clara de Oliveira Santos",
+          "nome_novo": "Maria Clara Oliveira Santos Pereira",
+          "data_alteracao": "15/03/2018",
+          "motivo": "Inclus\u00e3o do sobrenome do av\u00f4 materno"
+        },
+        "hash_cadeia": "001377580115c08f5c62a098f2ea909efdfeade7f0da8b32104d1c157a822e73"
+      },
+      "previous_hash": "001377580115c08f5c62a098f2ea909efdfeade7f0da8b32104d1c157a822e73",
+      "nonce": 48,
+      "hash": "00432842cd52b35c50cbe62f81820d8489b979d47e47fcaeac7bc8b652bf9f78",
+      "difficulty": 2
+    },
+    {
+      "index": 2,
+      "timestamp": 1787190911.3422387,
+      "data": {
+        "evento_tipo": "CASAMENTO",
+        "payload": {
+          "evento_tipo": "CASAMENTO",
+          "cpf": "12345678901",
+          "nome_conjuge": "Pedro Henrique Almeida Lima",
+          "cpf_conjuge": "98765432100",
+          "data_casamento": "20/06/2022",
+          "regime_bens": "COMUNHAO_PARCIAL",
+          "cidade": "Rio de Janeiro",
+          "uf": "RJ"
+        },
+        "hash_cadeia": "00432842cd52b35c50cbe62f81820d8489b979d47e47fcaeac7bc8b652bf9f78"
+      },
+      "previous_hash": "00432842cd52b35c50cbe62f81820d8489b979d47e47fcaeac7bc8b652bf9f78",
+      "nonce": 559,
+      "hash": "002a6d8a160939d555005a3b6b67186b4d644ea68fd4c62d4620a9d3094755ca",
+      "difficulty": 2
+    },
+    {
+      "index": 3,
+      "timestamp": 1787190911.3454792,
+      "data": {
+        "evento_tipo": "ADOCAO",
+        "payload": {
+          "evento_tipo": "ADOCAO",
+          "cpf": "12345678901",
+          "data_adocao": "10/11/2023",
+          "nome_mae_adotiva": "Maria Clara Oliveira Santos Pereira",
+          "nome_pai_adotivo": "Pedro Henrique Almeida Lima",
+          "nome_adotivo": "",
+          "mantem_nome_biologico": true
+        },
+        "hash_cadeia": "002a6d8a160939d555005a3b6b67186b4d644ea68fd4c62d4620a9d3094755ca"
+      },
+      "previous_hash": "002a6d8a160939d555005a3b6b67186b4d644ea68fd4c62d4620a9d3094755ca",
+      "nonce": 199,
+      "hash": "00a9720c3d86ceae21772e51d0cf9bee1aa272e3f260e62b5dc4f3a9590e938c",
+      "difficulty": 2
+    },
+    {
+      "index": 4,
+      "timestamp": 1787190911.346429,
+      "data": {
+        "evento_tipo": "DIVORCIO",
+        "payload": {
+          "evento_tipo": "DIVORCIO",
+          "cpf": "12345678901",
+          "data_divorcio": "05/01/2025",
+          "tipo": "CONSENSUAL",
+          "guarda_filhos": "COMPARTILHADA",
+          "pensao_alimenticia": false
+        },
+        "hash_cadeia": "00a9720c3d86ceae21772e51d0cf9bee1aa272e3f260e62b5dc4f3a9590e938c"
+      },
+      "previous_hash": "00a9720c3d86ceae21772e51d0cf9bee1aa272e3f260e62b5dc4f3a9590e938c",
+      "nonce": 120,
+      "hash": "00911dda63c462ea87cb82b2164a542de528ce899879396c349da760ebe2ca47",
+      "difficulty": 2
+    },
+    {
+      "index": 5,
+      "timestamp": 1787190911.3469634,
+      "data": {
+        "evento_tipo": "DISVINC_PATerna",
+        "payload": {
+          "evento_tipo": "DISVINC_PATerna",
+          "cpf": "12345678901",
+          "data_disvinculacao": "15/03/2026",
+          "motivo": "Aus\u00eancia prolongada e abandono afetivo comprovado judicialmente",
+          "vinculo_afetado": "PAI"
+        },
+        "hash_cadeia": "00911dda63c462ea87cb82b2164a542de528ce899879396c349da760ebe2ca47"
+      },
+      "previous_hash": "00911dda63c462ea87cb82b2164a542de528ce899879396c349da760ebe2ca47",
+      "nonce": 53,
+      "hash": "006e4d7104d4c7827ec96b116734c37ee204054fb6d140a883370e40a4f1c2f2",
+      "difficulty": 2
+    }
+  ]
+}

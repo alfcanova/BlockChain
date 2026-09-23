@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin IM — Blockchain de Imóveis</title>
+<style>
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1e293b;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#22c55e;--accent2:#10b981;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--cyan:#06b6d4;--blue:#3b82f6;--orange:#f97316;--purple:#8b5cf6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#0f2922,#0f172a);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50}
+.header h1{font-size:1.3rem;font-weight:700}.header .badge{background:var(--green);color:#000;padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:600}
+.header .nav{margin-left:auto;display:flex;gap:8px}.header .nav a{color:var(--text2);text-decoration:none;font-size:0.85rem;padding:6px 12px;border-radius:6px}.header .nav a:hover{background:var(--surface2);color:var(--text)}.header .nav a.active{background:var(--green);color:#000}
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.grid2{display:grid;grid-template-columns:350px 1fr;gap:16px}
+@media(max-width:768px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h2{font-size:1rem;margin-bottom:10px;color:var(--green);display:flex;align-items:center;gap:6px}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:0.85rem;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--green)}
+label{font-size:0.75rem;color:var(--text2);margin-bottom:2px;display:block}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--green);color:#000}.btn-primary:hover{background:#16a34a}
+.btn-blue{background:var(--blue);color:#fff}.btn-purple{background:var(--purple);color:#fff}
+.btn-red{background:var(--red);color:#fff}.btn-sm{padding:5px 12px;font-size:0.75rem}
+.tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:0.7rem;font-weight:600}
+.tag-green{background:#166534;color:#86efac}.tag-red{background:#991b1b;color:#fca5a5}.tag-yellow{background:#854d0e;color:#fde047}.tag-blue{background:#1e3a5f;color:#93c5fd}.tag-purple{background:#581c87;color:#d8b4fe}
+.empty{text-align:center;padding:30px;color:var(--text2)}.empty .icon{font-size:2.5rem;margin-bottom:8px}
+.chain-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:6px;cursor:pointer;transition:all .2s;display:flex;justify-content:space-between;align-items:center}
+.chain-item:hover{border-color:var(--green)}.chain-item.sel{border-color:var(--green);background:rgba(34,197,94,.1)}
+.chain-item .info{flex:1}.chain-item .name{font-weight:600;font-size:0.9rem}.chain-item .sub{color:var(--text2);font-size:0.8rem}.chain-item .meta{text-align:right;font-size:0.75rem;color:var(--text2)}
+.tl-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem}.tl-item:last-child{border-bottom:none}
+.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.status-bar{background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;gap:16px;font-size:0.8rem;margin-bottom:12px;flex-wrap:wrap}
+.status-bar .stat{display:flex;flex-direction:column}.status-bar .stat-label{color:var(--text2);font-size:0.7rem}.status-bar .stat-value{font-weight:700;font-size:1rem}
+.tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.tab{padding:7px 14px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);font-size:0.85rem}.tab:hover{color:var(--text)}.tab.active{color:var(--green);border-bottom-color:var(--green)}
+.hidden{display:none}
+.toast{position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;z-index:999;animation:slideIn .3s}
+.toast-ok{background:#166534;color:#86efac;border:1px solid #22c55e}.toast-err{background:#991b1b;color:#fca5a5;border:1px solid #ef4444}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;justify-content:center;align-items:center}.modal-overlay.active{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:550px;width:92%;max-height:80vh;overflow-y:auto}
+.modal h2{margin-bottom:12px;font-size:1.1rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏠 Admin IM</h1>
+  <span class="badge">ECDSA</span>
+  <div class="nav">
+    <a href="/">Home</a><a href="/admin/pf">PF</a><a href="/admin/im" class="active">IM</a><a href="/admin/mo">MO</a><a href="/admin/cross">Cross-Chain</a>
+  </div>
+</div>
+
+<div class="container">
+  <div id="toast" class="hidden"></div>
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h2>📋 Imóveis</h2>
+        <div style="position:relative;margin-bottom:8px"><input id="searchIm" placeholder="🔍 Buscar matrícula ou endereço..." oninput="filterIm()"></div>
+        <div id="imList" style="max-height:500px;overflow-y:auto"></div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-primary btn-sm" onclick="openNewIm()">+ Novo Imóvel</button>
+          <button class="btn btn-sm" style="background:var(--surface2);color:var(--text)" onclick="loadImList()">🔄</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div id="detailView"><div class="empty"><div class="icon">🏠</div>Selecione um imóvel na lista.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal"><h2 id="modalTitle">Novo</h2><div id="modalBody"></div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn btn-primary btn-sm" id="modalSubmit">Registrar</button><button class="btn btn-red btn-sm" onclick="closeModal()">Cancelar</button></div>
+  </div>
+</div>
+
+<script>
+const API='';let currentMat='';let allIms=[];
+function toast(m,ok=true){const e=document.getElementById('toast');e.textContent=m;e.className='toast toast-'+(ok?'ok':'err');e.style.display='block';setTimeout(()=>e.style.display='none',3000)}
+async function api(p,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);const r=await fetch(API+p,o);const j=await r.json();if(r.status>=400)throw new Error(j.detail||j.message||'Erro');return j}
+
+async function loadImList(){try{const r=await api('/api/im');allIms=r.data||[];renderImList(allIms)}catch(e){toast(e.message,false)}}
+function renderImList(ims){const el=document.getElementById('imList');if(!ims.length){el.innerHTML='<div class="empty">Nenhum imóvel.</div>';return}el.innerHTML=ims.map(i=>`<div class="chain-item ${i.matricula===currentMat?'sel':''}" onclick="selectIm('${i.matricula}')"><div class="info"><div class="name">${i.endereco?.logradouro||'Sem endereço'}</div><div class="sub">Mat: ${i.matricula} | ${i.situacao}</div></div><div class="meta">${i.blocos} bloco(s)<br>${i.area_terreno}m²</div></div>`).join('')}
+function filterIm(){const q=document.getElementById('searchIm').value.toLowerCase();renderImList(allIms.filter(i=>(i.endereco?.logradouro||'').toLowerCase().includes(q)||i.matricula.includes(q)))}
+
+async function selectIm(mat){currentMat=mat;document.querySelectorAll('.chain-item').forEach(e=>e.classList.remove('sel'));event.currentTarget.classList.add('sel');await loadDetail()}
+
+async function loadDetail(){
+  const dv=document.getElementById('detailView');
+  try{
+    const[info,tl]=await Promise.all([api(`/api/im/${currentMat}`),api(`/api/im/${currentMat}/timeline`)]);
+    const d=info.data;const timeline=tl.data||[];
+    const emojis={TERRENO:'🏗️',CONSTRUCAO:'🏠',COMPRA_VENDA:'💰',DOACAO:'🎁',HERANCA:'📜',GARANTIA:'🏦',LEILAO:'⚖️',CONFISCO:'🚨',REFORMA:'🔨',DESMEMBRAMENTO:'📐',CERTIDAO:'📋',IPTU:'📄',ZONEAMENTO:'📐',PENHORA:'🔒'};
+    const colors={TERRENO:'tag-green',CONSTRUCAO:'tag-blue',COMPRA_VENDA:'tag-yellow',DOACAO:'tag-purple',HERANCA:'tag-red',GARANTIA:'tag-yellow',LEILAO:'tag-red',REFORMA:'tag-blue'};
+    dv.innerHTML=`
+      <div class="status-bar">
+        <div class="stat"><span class="stat-label">Matrícula</span><span class="stat-value">${d.matricula}</span></div>
+        <div class="stat"><span class="stat-label">Situação</span><span class="stat-value">${d.situacao}</span></div>
+        <div class="stat"><span class="stat-label">Área Terreno</span><span class="stat-value">${d.area_terreno}m²</span></div>
+        <div class="stat"><span class="stat-label">Área Construída</span><span class="stat-value">${d.area_construida}m²</span></div>
+        <div class="stat"><span class="stat-label">Blocos</span><span class="stat-value">${d.blocos}</span></div>
+      </div>
+      <div class="tabs"><div class="tab active" onclick="showTab('tl',this)">Timeline</div><div class="tab" onclick="showTab('ev',this)">Eventos</div><div class="tab" onclick="showTab('cr',this)">Cross-Chain</div></div>
+      <div id="mtl"><div class="card"><h2>📅 Timeline</h2>
+        ${timeline.map(ev=>`<div class="tl-item"><div class="tl-dot" style="background:${ev.tipo==='COMPRA_VENDA'?'var(--yellow)':ev.tipo==='HERANCA'?'var(--red)':'var(--green)'}"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><span>${emojis[ev.tipo]||''} <span class="tag ${colors[ev.tipo]||'tag-blue'}">${ev.tipo}</span></span><span style="font-size:0.7rem;color:var(--text2)">${ev.data_registro}</span></div><div style="font-size:0.75rem;color:var(--text2)">Hash: ${ev.hash}...</div></div></div>`).join('')}
+      </div></div>
+      <div id="mev" class="hidden"><div class="card"><h2>⚡ Registrar Evento</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openEvt('construcao')">🏠 Construção</button>
+          <button class="btn btn-primary btn-sm" onclick="openEvt('compra_venda')">💰 Compra/Venda</button>
+          <button class="btn btn-purple btn-sm" onclick="openEvt('doacao')">🎁 Doação</button>
+          <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="openEvt('heranca')">📜 Herança</button>
+          <button class="btn btn-sm" style="background:var(--yellow);color:#000" onclick="openEvt('garantia')">🏦 Garantia</button>
+          <button class="btn btn-sm" style="background:var(--orange);color:#000" onclick="openEvt('leilao')">⚖️ Leilão</button>
+          <button class="btn btn-blue btn-sm" onclick="openEvt('reforma')">🔨 Reforma</button>
+          <button class="btn btn-sm" style="background:var(--cyan);color:#000" onclick="openEvt('confisco')">🚨 Confisco</button>
+        </div>
+      </div></div>
+      <div id="mcr" class="hidden"><div class="card"><h2>🔗 Cross-Chain</h2><div id="crossContent">Pessoas vinculadas: ${(d.proprietarios||[]).map(p=>p.nome||p.cpf).join(', ')||'Nenhuma'}</div></div></div>
+    `;
+  }catch(e){dv.innerHTML='<div class="empty">Erro: '+e.message+'</div>'}
+}
+function showTab(n,el){document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['mtl','mev','mcr'].forEach(id=>document.getElementById(id).classList.add('hidden'));document.getElementById({tl:'mtl',ev:'mev',cr:'mcr'}[n]).classList.remove('hidden')}
+
+const EVT_FORMS={
+  construcao:{title:'🏠 Construção',fields:[{id:'f1',label:'Descrição',ph:'Residência 200m²'},{id:'f2',label:'Área (m²)',ph:'200'},{id:'f3',label:'Tipo',type:'sel',opts:['RESIDENCIAL','COMERCIAL','MISTO']},{id:'f4',label:'Pavimentos',ph:'1'},{id:'f5',label:'Data Início',ph:'01/01/2020'},{id:'f6',label:'Data Fim',ph:'01/06/2021'},{id:'f7',label:'Resp. Técnico',ph:''}]},
+  compra_venda:{title:'💰 Compra/Venda',fields:[{id:'f1',label:'CPF Comprador',ph:'12345678901'},{id:'f2',label:'Nome Comprador',ph:''},{id:'f3',label:'CPF Vendedor',ph:''},{id:'f4',label:'Nome Vendedor',ph:''},{id:'f5',label:'Valor (R$)',ph:'500000'},{id:'f6',label:'Data',ph:'01/06/2024'},{id:'f7',label:'Escritura',ph:''},{id:'f8',label:'Cartório',ph:''}]},
+  doacao:{title:'🎁 Doação',fields:[{id:'f1',label:'CPF Donatário',ph:''},{id:'f2',label:'Nome Donatário',ph:''},{id:'f3',label:'CPF Doador',ph:''},{id:'f4',label:'Nome Doador',ph:''},{id:'f5',label:'Data',ph:'01/06/2024'},{id:'f6',label:'Motivo',ph:''}]},
+  heranca:{title:'📜 Herança',fields:[{id:'f1',label:'CPF Inventariado',ph:''},{id:'f2',label:'Nome Inventariado',ph:''},{id:'f3',label:'Herdeiros (JSON)',ph:'[{"cpf":"...","nome":"...","participacao":33.3}]'},{id:'f4',label:'Data Óbito',ph:'01/01/2024'},{id:'f5',label:'Tipo',type:'sel',opts:['JUDICIAL','EXTRAJUDICIAL']}]},
+  garantia:{title:'🏦 Garantia/Hipoteca',fields:[{id:'f1',label:'Credor Nome',ph:'Banco do Brasil'},{id:'f2',label:'Credor CNPJ',ph:''},{id:'f3',label:'Valor (R$)',ph:'200000'},{id:'f4',label:'Data',ph:'01/01/2024'},{id:'f5',label:'Vencimento',ph:'01/01/2034'},{id:'f6',label:'Tipo',type:'sel',opts:['HIPOTECARIA','ALIENACAO_FIDUCIARIA']},{id:'f7',label:'Taxa (%)',ph:'10.5'},{id:'f8',label:'Prazo (meses)',ph:'240'}]},
+  leilao:{title:'⚖️ Leilão',fields:[{id:'f1',label:'Data',ph:'01/06/2024'},{id:'f2',label:'Valor Mínimo',ph:'200000'},{id:'f3',label:'Lance Vencedor',ph:''},{id:'f4',label:'CPF Vencedor',ph:''},{id:'f5',label:'Nome Vencedor',ph:''},{id:'f6',label:'Leiloeiro',ph:''},{id:'f7',label:'Tipo',type:'sel',opts:['JUDICIAL','EXTRAJUDICIAL']}]},
+  reforma:{title:'🔨 Reforma',fields:[{id:'f1',label:'Descrição',ph:'Ampliação'},{id:'f2',label:'Tipo',type:'sel',opts:['AMPLIACAO','REDUCAO']},{id:'f3',label:'Área Anterior (m²)',ph:'100'},{id:'f4',label:'Área Nova (m²)',ph:'150'},{id:'f5',label:'Data Início',ph:''},{id:'f6',label:'Data Fim',ph:''}]},
+  confisco:{title:'🚨 Confisco',fields:[{id:'f1',label:'Autoridade',ph:'Juiz Federal'},{id:'f2',label:'Processo',ph:''},{id:'f3',label:'Data',ph:'01/06/2024'},{id:'f4',label:'Motivo',ph:''}]},
+};
+let curEvtType='';
+function openEvt(t){curEvtType=t;const f=EVT_FORMS[t];document.getElementById('modalTitle').textContent=f.title;document.getElementById('modalBody').innerHTML=f.fields.map(fd=>{if(fd.type==='sel')return`<div style="margin-bottom:8px"><label>${fd.label}</label><select id="${fd.id}">${fd.opts.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;return`<div style="margin-bottom:8px"><label>${fd.label}</label><input id="${fd.id}" placeholder="${fd.ph||''}"></div>`}).join('');document.getElementById('modalSubmit').onclick=submitEvt;document.getElementById('modalOverlay').classList.add('active')}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('active')}
+const v=id=>document.getElementById(id)?.value||'';
+async function submitEvt(){
+  try{
+    if(curEvtType==='construcao')await api(`/api/im/${currentMat}/event/construcao`,'POST',{matricula:currentMat,descricao:v('f1'),area_construida_m2:parseFloat(v('f2'))||0,tipo_construcao:v('f3'),pavimentos:parseInt(v('f4'))||1,data_inicio:v('f5'),data_fim:v('f6'),responsavel_tecnico:v('f7')});
+    else if(curEvtType==='compra_venda')await api(`/api/im/${currentMat}/event/compra_venda`,'POST',{matricula:currentMat,comprador_cpf:v('f1'),comprador_nome:v('f2'),vendedor_cpf:v('f3'),vendedor_nome:v('f4'),valor_transacao:parseFloat(v('f5'))||0,data_transacao:v('f6'),escritura_numero:v('f7'),cartorio:v('f8')});
+    else if(curEvtType==='doacao')await api(`/api/im/${currentMat}/event/doacao`,'POST',{matricula:currentMat,donatario_cpf:v('f1'),donatario_nome:v('f2'),doador_cpf:v('f3'),doador_nome:v('f4'),data_doacao:v('f5'),motivo:v('f6')});
+    else if(curEvtType==='heranca')await api(`/api/im/${currentMat}/event/heranca`,'POST',{matricula:currentMat,inventariado_cpf:v('f1'),inventariado_nome:v('f2'),herdeiros:JSON.parse(v('f3')||'[]'),data_obito:v('f4'),inventario_tipo:v('f5')});
+    else if(curEvtType==='garantia')await api(`/api/im/${currentMat}/event/garantia`,'POST',{matricula:currentMat,credor_nome:v('f1'),credor_cnpj:v('f2'),valor_garantia:parseFloat(v('f3'))||0,data_garantia:v('f4'),data_vencimento:v('f5'),tipo_garantia:v('f6'),taxa_juros:parseFloat(v('f7'))||0,prazo_meses:parseInt(v('f8'))||0});
+    else if(curEvtType==='leilao')await api(`/api/im/${currentMat}/event/leilao`,'POST',{matricula:currentMat,data_leilao:v('f1'),valor_minimo:parseFloat(v('f2'))||0,lance_vencedor:parseFloat(v('f3'))||0,vencedor_cpf:v('f4'),vencedor_nome:v('f5'),leiloeiro:v('f6'),tipo:v('f7')});
+    else if(curEvtType==='reforma')await api(`/api/im/${currentMat}/event/reforma`,'POST',{matricula:currentMat,descricao:v('f1'),tipo:v('f2'),area_anterior_m2:parseFloat(v('f3'))||0,area_nova_m2:parseFloat(v('f4'))||0,data_inicio:v('f5'),data_fim:v('f6')});
+    else if(curEvtType==='confisco')await api(`/api/im/${currentMat}/event`,'POST',{event_type:'CONFISCO',payload:{matricula:currentMat,autoridade:v('f1'),processo_numero:v('f2'),data_confisco:v('f3'),motivo:v('f4')}});
+    toast('Evento registrado!');closeModal();loadDetail();loadImList();
+  }catch(e){toast(e.message,false)}
+}
+
+function openNewIm(){
+  document.getElementById('modalTitle').textContent='🏠 Novo Imóvel';
+  document.getElementById('modalBody').innerHTML=`<div class="form-grid">
+    <div><label>Matrícula</label><input id="nMat" placeholder="1234567-1"></div>
+    <div><label>Logradouro</label><input id="nLog" placeholder="Rua das Flores, 100"></div>
+    <div><label>Bairro</label><input id="nBai" placeholder="Centro"></div>
+    <div><label>Cidade</label><input id="nCid" placeholder="São Paulo"></div>
+    <div><label>UF</label><input id="nUf" placeholder="SP" maxlength="2"></div>
+    <div><label>CEP</label><input id="nCep" placeholder="01000-000"></div>
+    <div><label>Latitude</label><input id="nLat" type="number" step="0.000001" value="-23.55"></div>
+    <div><label>Longitude</label><input id="nLon" type="number" step="0.000001" value="-46.63"></div>
+    <div><label>Área Terreno (m²)</label><input id="nArea" type="number" value="200"></div>
+  </div>`;
+  document.getElementById('modalSubmit').onclick=submitNewIm;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+async function submitNewIm(){
+  try{
+    await api('/api/im','POST',{matricula:v('nMat'),endereco_logradouro:v('nLog'),endereco_bairro:v('nBai'),endereco_cidade:v('nCid'),endereco_uf:v('nUf'),endereco_cep:v('nCep'),lat:parseFloat(v('nLat'))||0,lon:parseFloat(v('nLon'))||0,area_terreno_m2:parseFloat(v('nArea'))||100});
+    toast('Imóvel criado!');closeModal();loadImList();
+  }catch(e){toast(e.message,false)}
+}
+loadImList();
+</script>
+</body>
+</html>

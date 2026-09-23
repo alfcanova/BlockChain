@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockchain CO — Empresas (CNPJ)</title>
+<style>
+  :root { --bg: #0a0e17; --surface: #111827; --border: #334155; --text: #e2e8f0; --text2: #94a3b8; --purple: #8b5cf6; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .hero { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); border-bottom: 1px solid var(--border); padding: 60px 32px; text-align: center; }
+  .hero h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 12px; }
+  .hero h1 span { color: var(--purple); }
+  .hero p { font-size: 1.1rem; color: var(--text2); max-width: 600px; margin: 0 auto; }
+  .container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .section h2 { font-size: 1.2rem; color: var(--purple); margin-bottom: 16px; }
+  .events { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .event { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 0.85rem; }
+  .event .name { font-weight: 700; color: var(--purple); margin-bottom: 4px; }
+  .event .desc { color: var(--text2); }
+  .api-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .api-links a { background: var(--bg); border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; color: var(--text2); text-decoration: none; font-size: 0.85rem; }
+  .api-links a:hover { border-color: var(--purple); color: var(--text); }
+  .back { display: inline-block; margin-bottom: 24px; color: var(--purple); text-decoration: none; font-weight: 600; }
+  .back:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>🏢 Blockchain <span>CO</span></h1>
+  <p>Registro imutável para Empresas (CNPJ) — constituição, sócios, fusões, cisões e dissolução.</p>
+</div>
+<div class="container">
+  <a href="/" class="back">← Voltar</a>
+  <div class="section">
+    <h2>📋 Eventos Suportados</h2>
+    <div class="events">
+      <div class="event"><div class="name">Constituição</div><div class="desc">Abertura da empresa (gênesis)</div></div>
+      <div class="event"><div class="name">Adição de Sócio</div><div class="desc">Entrada de novo sócio</div></div>
+      <div class="event"><div class="name">Remoção de Sócio</div><div class="desc">Saída de sócio</div></div>
+      <div class="event"><div class="name">Mudança de Capital</div><div class="desc">Alteração do capital social</div></div>
+      <div class="event"><div class="name">Alteração Contratual</div><div class="desc">Mudança no contrato social</div></div>
+      <div class="event"><div class="name">Fusão</div><div class="desc">União com outra empresa</div></div>
+      <div class="event"><div class="name">Cisão</div><div class="desc">Divisão em empresas menores</div></div>
+      <div class="event"><div class="name">Incorporação</div><div class="desc">Absorção por outra empresa</div></div>
+      <div class="event"><div class="name">Suspensão</div><div class="desc">Suspensão de atividades</div></div>
+      <div class="event"><div class="name">Reabertura</div><div class="desc">Retorno de atividades</div></div>
+      <div class="event"><div class="name">Liquidação</div><div class="desc">Início da liquidação</div></div>
+      <div class="event"><div class="name">Baixa</div><div class="desc">Encerramento definitivo</div></div>
+      <div class="event"><div class="name">Certidão</div><div class="desc">Emissão de certidão</div></div>
+      <div class="event"><div class="name">Garantia</div><div class="desc">Garantia/fiança oferecida</div></div>
+    </div>
+  </div>
+  <div class="section">
+    <h2>🔗 API</h2>
+    <div class="api-links">
+      <a href="/api/docs">📄 Documentação Swagger</a>
+      <a href="/api/co">📋 Listar Empresas</a>
+      <a href="/api/health">💓 Health Check</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

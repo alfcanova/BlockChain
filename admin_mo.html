@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin MO — Blockchain de Veículos</title>
+<style>
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1e293b;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#f59e0b;--accent2:#d97706;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--cyan:#06b6d4;--blue:#3b82f6;--orange:#f97316;--purple:#8b5cf6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#2a1a00,#0f172a);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50}
+.header h1{font-size:1.3rem;font-weight:700}.header .badge{background:var(--accent);color:#000;padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:600}
+.header .nav{margin-left:auto;display:flex;gap:8px}.header .nav a{color:var(--text2);text-decoration:none;font-size:0.85rem;padding:6px 12px;border-radius:6px}.header .nav a:hover{background:var(--surface2);color:var(--text)}.header .nav a.active{background:var(--accent);color:#000}
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.grid2{display:grid;grid-template-columns:350px 1fr;gap:16px}
+@media(max-width:768px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h2{font-size:1rem;margin-bottom:10px;color:var(--accent);display:flex;align-items:center;gap:6px}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:0.85rem;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+label{font-size:0.75rem;color:var(--text2);margin-bottom:2px;display:block}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--accent);color:#000}.btn-primary:hover{background:#d97706}
+.btn-blue{background:var(--blue);color:#fff}.btn-purple{background:var(--purple);color:#fff}
+.btn-red{background:var(--red);color:#fff}.btn-sm{padding:5px 12px;font-size:0.75rem}
+.tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:0.7rem;font-weight:600}
+.tag-green{background:#166534;color:#86efac}.tag-red{background:#991b1b;color:#fca5a5}.tag-yellow{background:#854d0e;color:#fde047}.tag-blue{background:#1e3a5f;color:#93c5fd}.tag-purple{background:#581c87;color:#d8b4fe}.tag-orange{background:#7c2d12;color:#fdba74}
+.empty{text-align:center;padding:30px;color:var(--text2)}.empty .icon{font-size:2.5rem;margin-bottom:8px}
+.chain-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:6px;cursor:pointer;transition:all .2s;display:flex;justify-content:space-between;align-items:center}
+.chain-item:hover{border-color:var(--accent)}.chain-item.sel{border-color:var(--accent);background:rgba(245,158,11,.1)}
+.chain-item .info{flex:1}.chain-item .name{font-weight:600;font-size:0.9rem}.chain-item .sub{color:var(--text2);font-size:0.8rem}.chain-item .meta{text-align:right;font-size:0.75rem;color:var(--text2)}
+.tl-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem}.tl-item:last-child{border-bottom:none}
+.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.status-bar{background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;gap:16px;font-size:0.8rem;margin-bottom:12px;flex-wrap:wrap}
+.status-bar .stat{display:flex;flex-direction:column}.status-bar .stat-label{color:var(--text2);font-size:0.7rem}.status-bar .stat-value{font-weight:700;font-size:1rem}
+.tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.tab{padding:7px 14px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);font-size:0.85rem}.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.hidden{display:none}
+.toast{position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;z-index:999;animation:slideIn .3s}
+.toast-ok{background:#166534;color:#86efac;border:1px solid #22c55e}.toast-err{background:#991b1b;color:#fca5a5;border:1px solid #ef4444}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;justify-content:center;align-items:center}.modal-overlay.active{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:550px;width:92%;max-height:80vh;overflow-y:auto}
+.modal h2{margin-bottom:12px;font-size:1.1rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🚗 Admin MO</h1>
+  <span class="badge">ECDSA</span>
+  <div class="nav">
+    <a href="/">Home</a><a href="/admin/pf">PF</a><a href="/admin/im">IM</a><a href="/admin/mo" class="active">MO</a><a href="/admin/cross">Cross-Chain</a>
+  </div>
+</div>
+
+<div class="container">
+  <div id="toast" class="hidden"></div>
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h2>📋 Veículos</h2>
+        <div style="position:relative;margin-bottom:8px"><input id="searchMo" placeholder="🔍 Buscar placa, marca ou modelo..." oninput="filterMo()"></div>
+        <div id="moList" style="max-height:500px;overflow-y:auto"></div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-primary btn-sm" onclick="openNewMo()">+ Novo Veículo</button>
+          <button class="btn btn-sm" style="background:var(--surface2);color:var(--text)" onclick="loadMoList()">🔄</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div id="detailView"><div class="empty"><div class="icon">🚗</div>Selecione um veículo na lista.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal"><h2 id="modalTitle">Novo</h2><div id="modalBody"></div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn btn-primary btn-sm" id="modalSubmit">Registrar</button><button class="btn btn-red btn-sm" onclick="closeModal()">Cancelar</button></div>
+  </div>
+</div>
+
+<script>
+const API='';let currentPlaca='';let allMos=[];
+function toast(m,ok=true){const e=document.getElementById('toast');e.textContent=m;e.className='toast toast-'+(ok?'ok':'err');e.style.display='block';setTimeout(()=>e.style.display='none',3000)}
+async function api(p,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);const r=await fetch(API+p,o);const j=await r.json();if(r.status>=400)throw new Error(j.detail||j.message||'Erro');return j}
+
+async function loadMoList(){try{const r=await api('/api/mo');allMos=r.data||[];renderMoList(allMos)}catch(e){toast(e.message,false)}}
+function renderMoList(mos){const el=document.getElementById('moList');if(!mos.length){el.innerHTML='<div class="empty">Nenhum veículo.</div>';return}el.innerHTML=mos.map(m=>`<div class="chain-item ${m.placa===currentPlaca?'sel':''}" onclick="selectMo('${m.placa}')"><div class="info"><div class="name">${m.marca} ${m.modelo}</div><div class="sub">Placa: ${m.placa} | ${m.cor} | ${m.ano}</div></div><div class="meta">${m.blocos} bloco(s)<br>${m.situacao}</div></div>`).join('')}
+function filterMo(){const q=document.getElementById('searchMo').value.toLowerCase();renderMoList(allMos.filter(m=>m.placa.toLowerCase().includes(q)||(m.marca+' '+m.modelo).toLowerCase().includes(q)))}
+
+async function selectMo(p){currentPlaca=p;document.querySelectorAll('.chain-item').forEach(e=>e.classList.remove('sel'));event.currentTarget.classList.add('sel');await loadDetail()}
+
+async function loadDetail(){
+  const dv=document.getElementById('detailView');
+  try{
+    const[info,tl]=await Promise.all([api(`/api/mo/${currentPlaca}`),api(`/api/mo/${currentPlaca}/timeline`)]);
+    const d=info.data;const e=d.estado||{};const timeline=tl.data||[];
+    const emojis={FABRICACAO:'🏭',COMPRA_VENDA:'💰',DOACAO:'🎁',SINISTRO:'⚠️',SINISTRO_PERDA_TOTAL:'💥',MULTA:'💸',TROCA_PECA:'🔧',VALIDACAO_PECA:'🔍',GARANTIA_EMPRESTIMO:'🏦',QUITACAO_GARANTIA:'✅',RECALL_DE_FABRICA:'🚨',LEILAO:'⚖️',CONFISCO:'🔒',REVISAO:'🔧',LICENCIAMENTO:'📋',MUDANCA_COR:'🎨',BAIXA:'❌',TRANSFERENCIA_PROPRIEDADE:'📝'};
+    const colors={FABRICACAO:'tag-green',COMPRA_VENDA:'tag-blue',SINISTRO:'tag-red',MULTA:'tag-orange',RECALL_DE_FABRICA:'tag-orange',TROCA_PECA:'tag-purple',REVISAO:'tag-yellow',GARANTIA_EMPRESTIMO:'tag-yellow',LEILAO:'tag-red',BAIXA:'tag-red'};
+    dv.innerHTML=`
+      <div class="status-bar">
+        <div class="stat"><span class="stat-label">Placa</span><span class="stat-value">${d.placa}</span></div>
+        <div class="stat"><span class="stat-label">Veículo</span><span class="stat-value">${e.marca} ${e.modelo}</span></div>
+        <div class="stat"><span class="stat-label">Ano</span><span class="stat-value">${e.ano_fabricacao}/${e.ano_modelo}</span></div>
+        <div class="stat"><span class="stat-label">Cor</span><span class="stat-value">${e.cor}</span></div>
+        <div class="stat"><span class="stat-label">Situação</span><span class="stat-value">${e.situacao}</span></div>
+        <div class="stat"><span class="stat-label">Odomêtro</span><span class="stat-value">${e.odometro_km} km</span></div>
+        <div class="stat"><span class="stat-label">Blocos</span><span class="stat-value">${d.blocos}</span></div>
+        <div class="stat"><span class="stat-label">Válida</span><span class="stat-value">${d.valida?'✅':'❌'}</span></div>
+      </div>
+      <div class="tabs"><div class="tab active" onclick="showTab('tl',this)">Timeline</div><div class="tab" onclick="showTab('ev',this)">Eventos</div><div class="tab" onclick="showTab('st',this)">Estado</div><div class="tab" onclick="showTab('cr',this)">Cross-Chain</div></div>
+      <div id="mtl"><div class="card"><h2>📅 Timeline</h2>
+        ${timeline.map(ev=>`<div class="tl-item"><div class="tl-dot" style="background:${ev.tipo.includes('SINISTRO')||ev.tipo==='BAIXA'?'var(--red)':ev.tipo==='COMPRA_VENDA'?'var(--blue)':ev.tipo.includes('RECALL')?'var(--orange)':'var(--accent)'}"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><span>${emojis[ev.tipo]||''} <span class="tag ${colors[ev.tipo]||'tag-blue'}">${ev.tipo}</span></span><span style="font-size:0.7rem;color:var(--text2)">${ev.data_registro}</span></div><div style="font-size:0.75rem;color:var(--text2)">Hash: ${ev.hash}...</div></div></div>`).join('')}
+      </div></div>
+      <div id="mev" class="hidden"><div class="card"><h2>⚡ Registrar Evento</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openEvt('compra_venda')">💰 Compra/Venda</button>
+          <button class="btn btn-purple btn-sm" onclick="openEvt('doacao')">🎁 Doação</button>
+          <button class="btn btn-red btn-sm" onclick="openEvt('sinistro')">⚠️ Sinistro</button>
+          <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="openEvt('sinistro_perda_total')">💥 Perda Total</button>
+          <button class="btn btn-sm" style="background:var(--orange);color:#000" onclick="openEvt('multa')">💸 Multa</button>
+          <button class="btn btn-blue btn-sm" onclick="openEvt('troca_peca')">🔧 Troca Peça</button>
+          <button class="btn btn-sm" style="background:var(--yellow);color:#000" onclick="openEvt('revisao')">🔧 Revisão</button>
+          <button class="btn btn-sm" style="background:var(--orange);color:#000" onclick="openEvt('recall')">🚨 Recall</button>
+          <button class="btn btn-sm" style="background:var(--yellow);color:#000" onclick="openEvt('garantia')">🏦 Garantia</button>
+          <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="openEvt('leilao')">⚖️ Leilão</button>
+          <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="openEvt('confisco')">🔒 Confisco</button>
+          <button class="btn btn-sm" style="background:var(--cyan);color:#000" onclick="openEvt('licenciamento')">📋 Licenciamento</button>
+          <button class="btn btn-sm" style="background:var(--purple);color:#fff" onclick="openEvt('validacao_peca')">🔍 Validação</button>
+          <button class="btn btn-sm" style="background:var(--text2);color:#000" onclick="openEvt('mudanca_cor')">🎨 Mudar Cor</button>
+        </div>
+      </div></div>
+      <div id="mst" class="hidden"><div class="card"><h2>📊 Estado Atual</h2>
+        <pre style="font-size:0.8rem;color:var(--text2);white-space:pre-wrap">${JSON.stringify(e,null,2)}</pre>
+      </div></div>
+      <div id="mcr" class="hidden"><div class="card"><h2>🔗 Cross-Chain</h2><div id="crossContent">Carregando...</div></div></div>
+    `;
+  }catch(e){dv.innerHTML='<div class="empty">Erro: '+e.message+'</div>'}
+}
+function showTab(n,el){document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['mtl','mev','mst','mcr'].forEach(id=>document.getElementById(id).classList.add('hidden'));document.getElementById({tl:'mtl',ev:'mev',st:'mst',cr:'mcr'}[n]).classList.remove('hidden');if(n==='cr')loadCross()}
+
+async function loadCross(){const el=document.getElementById('crossContent');try{const r=await api(`/api/cross/mo/${currentPlaca}/pessoas`);const pess=r.data||[];el.innerHTML=`<h3>Pessoas vinculadas</h3>${pess.length===0?'<div style="color:var(--text2);font-size:0.85rem">Nenhuma pessoa vinculada.</div>':pess.map(p=>`<div style="padding:4px 0;font-size:0.85rem">👤 ${p.nome||p.cpf} — ${p.vinculo}</div>`).join('')}<div class="btn-row"><button class="btn btn-sm btn-primary" onclick="openVinculo()">+ Vincular Pessoa</button></div>`}catch(e){el.innerHTML='Erro: '+e.message}}
+
+const EVT_FORMS={
+  compra_venda:{title:'💰 Compra/Venda',fields:[{id:'f1',label:'CPF Comprador',ph:'12345678901'},{id:'f2',label:'Nome Comprador',ph:''},{id:'f3',label:'CPF Vendedor',ph:''},{id:'f4',label:'Nome Vendedor',ph:''},{id:'f5',label:'Valor (R$)',ph:'50000'},{id:'f6',label:'Data',ph:'01/06/2024'},{id:'f7',label:'Odomêtro (km)',ph:'45000'},{id:'f8',label:'Nota Fiscal',ph:''}]},
+  doacao:{title:'🎁 Doação',fields:[{id:'f1',label:'CPF Donatário',ph:''},{id:'f2',label:'Nome Donatário',ph:''},{id:'f3',label:'CPF Doador',ph:''},{id:'f4',label:'Nome Doador',ph:''},{id:'f5',label:'Data',ph:'01/06/2024'},{id:'f6',label:'Motivo',ph:''}]},
+  sinistro:{title:'⚠️ Sinistro',fields:[{id:'f1',label:'Data',ph:'01/06/2024'},{id:'f2',label:'Tipo',type:'sel',opts:['COLISAO','ATROPELAMENTO','INCENDIO','ALAGAMENTO','OUTRO']},{id:'f3',label:'Nº BO',ph:''},{id:'f4',label:'Delegacia',ph:''},{id:'f5',label:'Seguradora',ph:''},{id:'f6',label:'CNPJ Seg.',ph:''},{id:'f7',label:'Apólice',ph:''},{id:'f8',label:'Valor Dano (R$)',ph:'5000'},{id:'f9',label:'Peças',ph:'Para-choque, Farol'}]},
+  sinistro_perda_total:{title:'💥 Perda Total',fields:[{id:'f1',label:'Data',ph:'01/06/2024'},{id:'f2',label:'Tipo',type:'sel',opts:['COLISAO','INCENDIO','ALAGAMENTO','FURTO_ROUBO']},{id:'f3',label:'Nº BO',ph:''},{id:'f4',label:'Seguradora',ph:''},{id:'f5',label:'CNPJ Seg.',ph:''},{id:'f6',label:'Indenização (R$)',ph:'30000'},{id:'f7',label:'Destino',type:'sel',opts:['DESLICHE','FERRO_VELHO','DESTRUIDO','RECICLAGEM']},{id:'f8',label:'Data Baixa DETRAN',ph:''}]},
+  multa:{title:'💸 Multa',fields:[{id:'f1',label:'Nº Auto',ph:''},{id:'f2',label:'Data',ph:'01/06/2024'},{id:'f3',label:'Local',ph:'Av. Paulista'},{id:'f4',label:'Cidade',ph:'São Paulo'},{id:'f5',label:'UF',ph:'SP'},{id:'f6',label:'Enquadramento',ph:'Art. 163 CTB'},{id:'f7',label:'Pontos',ph:'5'},{id:'f8',label:'Valor (R$)',ph:'293.47'},{id:'f9',label:'Órgão',ph:'DETRAN/SP'},{id:'f10',label:'CPF Condutor',ph:''},{id:'f11',label:'Nome Condutor',ph:''}]},
+  troca_peca:{title:'🔧 Troca de Peça',fields:[{id:'f1',label:'Peça',ph:'Motor'},{id:'f2',label:'Nº Série',ph:''},{id:'f3',label:'Fabricante',ph:''},{id:'f4',label:'Origem',type:'sel',opts:['ORIGINAL','GENUINA','REMANUFACTURADA']},{id:'f5',label:'Data',ph:'01/06/2024'},{id:'f6',label:'Oficina',ph:''},{id:'f7',label:'CPF Mecânico',ph:''},{id:'f8',label:'Motivo',ph:''},{id:'f9',label:'Odomêtro',ph:'80000'}]},
+  revisao:{title:'🔧 Revisão',fields:[{id:'f1',label:'Data',ph:'01/06/2024'},{id:'f2',label:'Oficina',ph:''},{id:'f3',label:'Tipo',type:'sel',opts:['PREVENTIVA','CORRETIVA']},{id:'f4',label:'Itens',ph:'Óleo, Filtros, Freios'},{id:'f5',label:'Peças',ph:'Óleo, Filtro'},{id:'f6',label:'Odomêtro',ph:'50000'},{id:'f7',label:'Valor (R$)',ph:'500'}]},
+  recall:{title:'🚨 Recall de Fábrica',fields:[{id:'f1',label:'Data Notificação',ph:'01/06/2024'},{id:'f2',label:'Nº Recall',ph:''},{id:'f3',label:'Peça Defeituosa',ph:'Airbag'},{id:'f4',label:'Descrição',ph:''},{id:'f5',label:'Risco',type:'sel',opts:['BAIXO','MEDIO','ALTO','CRITICO']},{id:'f6',label:'Solução',ph:''},{id:'f7',label:'Oficina Autorizada',ph:''},{id:'f8',label:'Prazo',ph:''},{id:'f9',label:'Custo (R$)',ph:'0'}]},
+  garantia:{title:'🏦 Garantia/Empréstimo',fields:[{id:'f1',label:'Credor',ph:'Banco'},{id:'f2',label:'CNPJ',ph:''},{id:'f3',label:'Valor (R$)',ph:'20000'},{id:'f4',label:'Data',ph:'01/01/2024'},{id:'f5',label:'Vencimento',ph:'01/01/2026'},{id:'f6',label:'Taxa (%)',ph:'2.5'},{id:'f7',label:'Parcelas',ph:'24'},{id:'f8',label:'Tipo',type:'sel',opts:['ALIENACAO_FIDUCIARIA','PENHOR']}]},
+  leilao:{title:'⚖️ Leilão',fields:[{id:'f1',label:'Data',ph:'01/06/2024'},{id:'f2',label:'Valor Mínimo',ph:'20000'},{id:'f3',label:'Lance Vencedor',ph:''},{id:'f4',label:'CPF Vencedor',ph:''},{id:'f5',label:'Nome Vencedor',ph:''},{id:'f6',label:'Leiloeiro',ph:''},{id:'f7',label:'Tipo',type:'sel',opts:['JUDICIAL','EXTRAJUDICIAL']}]},
+  confisco:{title:'🔒 Confisco',fields:[{id:'f1',label:'Autoridade',ph:'Juiz Federal'},{id:'f2',label:'Processo',ph:''},{id:'f3',label:'Data',ph:'01/06/2024'},{id:'f4',label:'Motivo',ph:''}]},
+  licenciamento:{title:'📋 Licenciamento',fields:[{id:'f1',label:'Ano',ph:'2024'},{id:'f2',label:'Data',ph:'01/03/2024'},{id:'f3',label:'IPVA Pago',type:'sel',opts:['Sim','Não']},{id:'f4',label:'Valor IPVA (R$)',ph:'1500'}]},
+  validacao_peca:{title:'🔍 Validação de Peça',fields:[{id:'f1',label:'Peça',ph:'Motor'},{id:'f2',label:'Nº Série',ph:''},{id:'f3',label:'CPF Validador',ph:''},{id:'f4',label:'Nome Validador',ph:''},{id:'f5',label:'Data',ph:'01/06/2024'},{id:'f6',label:'Resultado',type:'sel',opts:['AUTENTICADA','FALSIFICADA','INCONCLUSIVA']},{id:'f7',label:'Método',ph:''}]},
+  mudanca_cor:{title:'🎨 Mudança de Cor',fields:[{id:'f1',label:'Cor Anterior',ph:''},{id:'f2',label:'Cor Nova',ph:''},{id:'f3',label:'Data',ph:'01/06/2024'}]},
+};
+let curEvtType='';
+function openEvt(t){curEvtType=t;const f=EVT_FORMS[t];document.getElementById('modalTitle').textContent=f.title;document.getElementById('modalBody').innerHTML=f.fields.map(fd=>{if(fd.type==='sel')return`<div style="margin-bottom:8px"><label>${fd.label}</label><select id="${fd.id}">${fd.opts.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;return`<div style="margin-bottom:8px"><label>${fd.label}</label><input id="${fd.id}" placeholder="${fd.ph||''}"></div>`}).join('');document.getElementById('modalSubmit').onclick=submitEvt;document.getElementById('modalOverlay').classList.add('active')}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('active')}
+const v=id=>document.getElementById(id)?.value||'';
+async function submitEvt(){
+  const p=currentPlaca;
+  try{
+    if(curEvtType==='compra_venda')await api(`/api/mo/${p}/event`,'POST',{event_type:'COMPRA_VENDA',payload:{placa:p,comprador:{cpf:v('f1'),nome:v('f2')},vendedor:{cpf:v('f3'),nome:v('f4')},valor_transacao:parseFloat(v('f5'))||0,data_transacao:v('f6'),odometro_km:parseFloat(v('f7'))||0,notafiscal_numero:v('f8')}});
+    else if(curEvtType==='doacao')await api(`/api/mo/${p}/event`,'POST',{event_type:'DOACAO',payload:{placa:p,donatario:{cpf:v('f1'),nome:v('f2')},doador:{cpf:v('f3'),nome:v('f4')},data_doacao:v('f5'),motivo:v('f6')}});
+    else if(curEvtType==='sinistro')await api(`/api/mo/${p}/event`,'POST',{event_type:'SINISTRO',payload:{placa:p,data_sinistro:v('f1'),tipo:v('f2'),bo_numero:v('f3'),delegacia:v('f4'),seguradora:{nome:v('f5'),cnpj:v('f6'),apolice:v('f7')},valor_dano:parseFloat(v('f8'))||0,pecas_danificadas:v('f9').split(',').map(s=>s.trim()).filter(Boolean)}});
+    else if(curEvtType==='sinistro_perda_total')await api(`/api/mo/${p}/event`,'POST',{event_type:'SINISTRO_PERDA_TOTAL',payload:{placa:p,data_sinistro:v('f1'),tipo:v('f2'),bo_numero:v('f3'),seguradora:{nome:v('f4'),cnpj:v('f5')},valor_indenizacao:parseFloat(v('f6'))||0,destino:v('f7'),data_baixa_detran:v('f8')}});
+    else if(curEvtType==='multa')await api(`/api/mo/${p}/event`,'POST',{event_type:'MULTA',payload:{placa:p,numero_auto:v('f1'),data_infracao:v('f2'),local:{logradouro:v('f3'),cidade:v('f4'),uf:v('f5')},enquadramento:v('f6'),pontos:parseInt(v('f7'))||0,valor_multa:parseFloat(v('f8'))||0,orgao_autuador:v('f9'),condutor:{cpf:v('f10'),nome:v('f11')}}});
+    else if(curEvtType==='troca_peca')await api(`/api/mo/${p}/event`,'POST',{event_type:'TROCA_PECA',payload:{placa:p,peca:{nome:v('f1'),numero_serie:v('f2'),fabricante:v('f3'),origem:v('f4')},data_troca:v('f5'),oficina_responsavel:v('f6'),mecanico_cpf:v('f7'),motivo:v('f8'),odometro_km:parseFloat(v('f9'))||0}});
+    else if(curEvtType==='revisao')await api(`/api/mo/${p}/event`,'POST',{event_type:'REVISAO',payload:{placa:p,data_revisao:v('f1'),oficina_responsavel:v('f2'),tipo_revisao:v('f3'),itens_revisados:v('f4').split(',').map(s=>s.trim()),pecas_substituidas:v('f5').split(',').map(s=>s.trim()),odometro_km:parseFloat(v('f6'))||0,valor_total:parseFloat(v('f7'))||0}});
+    else if(curEvtType==='recall')await api(`/api/mo/${p}/event`,'POST',{event_type:'RECALL_DE_FABRICA',payload:{placa:p,data_notificacao:v('f1'),fabricante_nome:'',fabricante_cnpj:'',numero_recall:v('f2'),peca_defeituosa:v('f3'),descricao_defeito:v('f4'),risco:v('f5'),solucao:v('f6'),oficina_autorizada:v('f7'),prazo_conclusao:v('f8'),custo_para_proprietario:parseFloat(v('f9'))||0}});
+    else if(curEvtType==='garantia')await api(`/api/mo/${p}/event`,'POST',{event_type:'GARANTIA_EMPRESTIMO',payload:{placa:p,credor_nome:v('f1'),credor_cnpj:v('f2'),valor_emprestimo:parseFloat(v('f3'))||0,data_garantia:v('f4'),data_vencimento:v('f5'),taxa_juros:parseFloat(v('f6'))||0,parcelas:parseInt(v('f7'))||0,tipo_garantia:v('f8')}});
+    else if(curEvtType==='leilao')await api(`/api/mo/${p}/event`,'POST',{event_type:'LEILAO',payload:{placa:p,data_leilao:v('f1'),valor_minimo:parseFloat(v('f2'))||0,lance_vencedor:parseFloat(v('f3'))||0,vencedor:{cpf:v('f4'),nome:v('f5')},leiloeiro:v('f6'),tipo:v('f7')}});
+    else if(curEvtType==='confisco')await api(`/api/mo/${p}/event`,'POST',{event_type:'CONFISCO',payload:{placa:p,autoridade:v('f1'),processo_numero:v('f2'),data_confisco:v('f3'),motivo:v('f4')}});
+    else if(curEvtType==='licenciamento')await api(`/api/mo/${p}/event`,'POST',{event_type:'LICENCIAMENTO',payload:{placa:p,ano_licenciamento:parseInt(v('f1'))||2024,data_licenciamento:v('f2'),ipva_pago:v('f3')==='Sim',valor_ipva:parseFloat(v('f4'))||0}});
+    else if(curEvtType==='validacao_peca')await api(`/api/mo/${p}/event`,'POST',{event_type:'VALIDACAO_PECA',payload:{placa:p,peca:{nome:v('f1'),numero_serie:v('f2')},validador:{cpf:v('f3'),nome:v('f4')},data_validacao:v('f5'),resultado:v('f6'),metodo_validacao:v('f7')}});
+    else if(curEvtType==='mudanca_cor')await api(`/api/mo/${p}/event`,'POST',{event_type:'MUDANCA_COR',payload:{placa:p,cor_anterior:v('f1'),cor_nova:v('f2'),data_mudanca:v('f3')}});
+    toast('Evento registrado!');closeModal();loadDetail();loadMoList();
+  }catch(e){toast(e.message,false)}
+}
+
+async function openNewMo(){
+  document.getElementById('modalTitle').textContent='🚗 Novo Veículo';
+  const flds=[
+    {l:'Placa',p:'ABC1D23'},{l:'Renavan',p:'12345678901'},{l:'Chassi',p:'9BWZZZ377VT000001'},
+    {l:'Marca',p:'Volkswagen'},{l:'Modelo',p:'Gol'},{l:'Ano Fab.',p:'2024'},{l:'Ano Mod.',p:'2024'},
+    {l:'Cor',p:'Prata'},{l:'Combustível',t:'sel',o:['GASOLINA','ETANOL','FLEX','DIESEL','ELETRICO']},
+    {l:'Cilindradas',p:'1000'},{l:'Potência (CV)',p:'75'}];
+  let html=flds.map(f=>f.t?`<div style="margin-bottom:8px"><label>${f.l}</label><select id="n_${f.l.replace(/[^a-zà-ú]/gi,'')}">${f.o.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`
+    :`<div style="margin-bottom:8px"><label>${f.l}</label><input id="n_${f.l.replace(/[^a-zà-ú]/gi,'')}" placeholder="${f.p}"></div>`).join('');
+  html+=`<div style="margin-bottom:8px"><label>UF</label><select id="n_UF" onchange="loadCidadesN()"><option value="">—</option></select></div>
+  <div style="margin-bottom:8px"><label>Cidade</label><select id="n_Cidade"><option value="">—</option></select></div>`;
+  document.getElementById('modalBody').innerHTML=html;
+  document.getElementById('modalSubmit').onclick=async()=>{
+    const g=id=>document.getElementById('n_'+id)?.value||'';
+    try{
+      await api('/api/mo','POST',{placa:g('Placa'),renavan:g('Renavan'),chassis:g('Chassi'),marca:g('Marca'),modelo:g('Modelo'),
+        ano_fabricacao:parseInt(g('AnoFab'))||0,ano_modelo:parseInt(g('AnoMod'))||0,cor:g('Cor'),combustivel:g('Combustvel'),
+        cilindradas:parseInt(g('Cilindradas'))||0,potencia_cv:parseFloat(g('PotnciaCV'))||0,uf:g('UF'),cidade:g('Cidade')});
+      toast('Veículo criado!');closeModal();loadMoList();
+    }catch(e){toast(e.message,false)}
+  };
+  try{const r=await api('/api/geografia/ufs');const sel=document.getElementById('n_UF');
+    (r.data.ufs||[]).forEach(u=>{const o=document.createElement('option');o.value=u.sigla;o.textContent=u.sigla+' — '+u.nome;sel.appendChild(o)});}catch(e){}
+  document.getElementById('modalOverlay').classList.add('active');
+}
+async function loadCidadesN(){
+  const uf=document.getElementById('n_UF').value, sel=document.getElementById('n_Cidade');
+  sel.innerHTML='<option value="">—</option>';
+  if(!uf)return;
+  try{const r=await api('/api/geografia/municipios?uf='+encodeURIComponent(uf));
+    (r.data.municipios||[]).forEach(m=>{const o=document.createElement('option');o.value=m.nome;o.textContent=m.nome;sel.appendChild(o)});}catch(e){}
+}
+
+loadMoList();
+</script>
+</body>
+</html>

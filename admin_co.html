@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin CO — Blockchain de Empresas</title>
+<style>
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1e293b;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#8b5cf6;--accent2:#7c3aed;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--cyan:#06b6d4;--blue:#3b82f6;--orange:#f97316;--purple:#8b5cf6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#1a0a3e,#0f172a);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50}
+.header h1{font-size:1.3rem;font-weight:700}.header .badge{background:var(--accent);color:#fff;padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:600}
+.header .nav{margin-left:auto;display:flex;gap:8px}.header .nav a{color:var(--text2);text-decoration:none;font-size:0.85rem;padding:6px 12px;border-radius:6px}.header .nav a:hover{background:var(--surface2);color:var(--text)}.header .nav a.active{background:var(--accent);color:#fff}
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.grid2{display:grid;grid-template-columns:350px 1fr;gap:16px}
+@media(max-width:768px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h2{font-size:1rem;margin-bottom:10px;color:var(--accent);display:flex;align-items:center;gap:6px}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:0.85rem;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+label{font-size:0.75rem;color:var(--text2);margin-bottom:2px;display:block}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+.btn-blue{background:var(--blue);color:#fff}.btn-purple{background:var(--purple);color:#fff}
+.btn-red{background:var(--red);color:#fff}.btn-sm{padding:5px 12px;font-size:0.75rem}
+.tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:0.7rem;font-weight:600}
+.tag-green{background:#166534;color:#86efac}.tag-red{background:#991b1b;color:#fca5a5}.tag-yellow{background:#854d0e;color:#fde047}.tag-blue{background:#1e3a5f;color:#93c5fd}.tag-purple{background:#581c87;color:#d8b4fe}.tag-orange{background:#7c2d12;color:#fdba74}
+.empty{text-align:center;padding:30px;color:var(--text2)}.empty .icon{font-size:2.5rem;margin-bottom:8px}
+.chain-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:6px;cursor:pointer;transition:all .2s;display:flex;justify-content:space-between;align-items:center}
+.chain-item:hover{border-color:var(--accent)}.chain-item.sel{border-color:var(--accent);background:rgba(139,92,246,.1)}
+.chain-item .info{flex:1}.chain-item .name{font-weight:600;font-size:0.9rem}.chain-item .sub{color:var(--text2);font-size:0.8rem}.chain-item .meta{text-align:right;font-size:0.75rem;color:var(--text2)}
+.tl-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem}.tl-item:last-child{border-bottom:none}
+.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.status-bar{background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;gap:16px;font-size:0.8rem;margin-bottom:12px;flex-wrap:wrap}
+.status-bar .stat{display:flex;flex-direction:column}.status-bar .stat-label{color:var(--text2);font-size:0.7rem}.status-bar .stat-value{font-weight:700;font-size:1rem}
+.tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.tab{padding:7px 14px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);font-size:0.85rem}.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.hidden{display:none}
+.toast{position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;z-index:999;animation:slideIn .3s}
+.toast-ok{background:#166534;color:#86efac;border:1px solid #22c55e}.toast-err{background:#991b1b;color:#fca5a5;border:1px solid #ef4444}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;justify-content:center;align-items:center}.modal-overlay.active{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:550px;width:92%;max-height:80vh;overflow-y:auto}
+.modal h2{margin-bottom:12px;font-size:1.1rem}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏢 Admin CO</h1>
+  <span class="badge">ECDSA</span>
+  <div class="nav">
+    <a href="/">Home</a><a href="/admin/pf">PF</a><a href="/admin/im">IM</a><a href="/admin/mo">MO</a><a href="/admin/co" class="active">CO</a><a href="/admin/cross">Cross-Chain</a>
+  </div>
+</div>
+
+<div class="container">
+  <div id="toast" class="hidden"></div>
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h2>📋 Empresas</h2>
+        <input id="searchCo" placeholder="🔍 Buscar CNPJ ou razão social..." oninput="filterCo()">
+        <div id="coList" style="max-height:500px;overflow-y:auto;margin-top:8px"></div>
+        <div style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="openNewCo()">+ Nova Empresa</button></div>
+      </div>
+    </div>
+    <div>
+      <div id="detailView"><div class="empty"><div class="icon">🏢</div>Selecione uma empresa na lista.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal"><h2 id="modalTitle">Novo</h2><div id="modalBody"></div>
+    <div style="margin-top:12px;display:flex;gap:8px"><button class="btn btn-primary btn-sm" id="modalSubmit">Registrar</button><button class="btn btn-red btn-sm" onclick="closeModal()">Cancelar</button></div>
+  </div>
+</div>
+
+<script>
+let currentCnpj='';let allCos=[];
+function toast(m,ok=true){const e=document.getElementById('toast');e.textContent=m;e.className='toast toast-'+(ok?'ok':'err');e.style.display='block';setTimeout(()=>e.style.display='none',3000)}
+async function api(p,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);const r=await fetch(p,o);const j=await r.json();if(r.status>=400)throw new Error(j.detail||'Erro');return j}
+
+async function loadCoList(){try{const r=await api('/api/co');allCos=r.data||[];renderCoList(allCos)}catch(e){toast(e.message,false)}}
+function renderCoList(cos){const el=document.getElementById('coList');if(!cos.length){el.innerHTML='<div class="empty">Nenhuma empresa.</div>';return}el.innerHTML=cos.map(c=>`<div class="chain-item ${c.cnpj===currentCnpj?'sel':''}" onclick="selectCo('${c.cnpj}')"><div class="info"><div class="name">${c.razao_social||c.cnpj}</div><div class="sub">CNPJ: ${c.cnpj}</div></div><div class="meta">${c.blocos} bloco(s)<br><span class="tag ${c.situacao==='ATIVA'?'tag-green':'tag-red'}">${c.situacao}</span></div></div>`).join('')}
+function filterCo(){const q=document.getElementById('searchCo').value.toLowerCase();renderCoList(allCos.filter(c=>c.cnpj.includes(q)||(c.razao_social||'').toLowerCase().includes(q)))}
+
+async function selectCo(c){currentCnpj=c;document.querySelectorAll('.chain-item').forEach(e=>e.classList.remove('sel'));event.currentTarget.classList.add('sel');await loadDetail()}
+
+async function loadDetail(){
+  const dv=document.getElementById('detailView');
+  try{
+    const[info,tl]=await Promise.all([api(`/api/co/${currentCnpj}`),api(`/api/co/${currentCnpj}/timeline`)]);
+    const e=info.data.estado||{};const timeline=tl.data||[];
+    const emojis={CONSTITUICAO:'🏛️',ADICAO_SOCIO:'👤',REMOCAO_SOCIO:'👤',MUDANCA_QUOTA:'📊',ALTERACAO_CONTRATUAL:'📝',MUDANCA_ENDERECO:'📍',MUDANCA_CAPITAL:'💰',MUDANCA_OBJETO:'📋',MUDANCA_NOME:'🏷️',FUSAO:'🔀',CISAO:'✂️',INCORPORACAO:'📥',SUSPENSAO:'⏸️',REABERTURA:'▶️',LIQUIDACAO:'🔄',BAIXA:'❌',CERTIDAO:'📄',GARANTIA:'🏦',QUITACAO:'✅',ALVARA:'📋',INSCRICAO_ESTADUAL:'📋',INSCRICAO_MUNICIPAL:'📋',COLIGACAO:'🤝'};
+    const colors={CONSTITUICAO:'tag-green',ADICAO_SOCIO:'tag-blue',REMOCAO_SOCIO:'tag-red',MUDANCA_CAPITAL:'tag-yellow',BAIXA:'tag-red',FUSAO:'tag-purple',SUSPENSAO:'tag-orange',CERTIDAO:'tag-green',GARANTIA:'tag-yellow'};
+    dv.innerHTML=`
+      <div class="status-bar">
+        <div class="stat"><span class="stat-label">CNPJ</span><span class="stat-value">${e.cnpj}</span></div>
+        <div class="stat"><span class="stat-label">Razão Social</span><span class="stat-value">${e.razao_social}</span></div>
+        <div class="stat"><span class="stat-label">Situação</span><span class="stat-value"><span class="tag ${e.situacao_cadastral==='ATIVA'?'tag-green':e.situacao_cadastral==='BAIXADA'?'tag-red':'tag-yellow'}">${e.situacao_cadastral}</span></span></div>
+        <div class="stat"><span class="stat-label">Capital</span><span class="stat-value">R$ ${(e.capital_social||0).toLocaleString()}</span></div>
+        <div class="stat"><span class="stat-label">Sócios</span><span class="stat-value">${(e.socios||[]).length}</span></div>
+        <div class="stat"><span class="stat-label">Blocos</span><span class="stat-value">${info.data.blocos}</span></div>
+      </div>
+      <div class="tabs"><div class="tab active" onclick="showTab('tl',this)">Timeline</div><div class="tab" onclick="showTab('ev',this)">Eventos</div><div class="tab" onclick="showTab('st',this)">Estado</div></div>
+      <div id="mtl"><div class="card"><h2>📅 Timeline</h2>
+        ${timeline.map(ev=>`<div class="tl-item"><div class="tl-dot" style="background:${ev.tipo==='BAIXA'?'var(--red)':ev.tipo==='SUSPENSAO'?'var(--orange)':'var(--accent)'}"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><span>${emojis[ev.tipo]||''} <span class="tag ${colors[ev.tipo]||'tag-blue'}">${ev.tipo}</span></span><span style="font-size:0.7rem;color:var(--text2)">${ev.data_registro}</span></div></div></div>`).join('')}
+      </div></div>
+      <div id="mev" class="hidden"><div class="card"><h2>⚡ Registrar Evento</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openEvt('adicao_socio')">👤 Adicionar Sócio</button>
+          <button class="btn btn-red btn-sm" onclick="openEvt('remocao_socio')">👤 Remover Sócio</button>
+          <button class="btn btn-sm" style="background:var(--yellow);color:#000" onclick="openEvt('mudanca_quota')">📊 Mudar Quota</button>
+          <button class="btn btn-blue btn-sm" onclick="openEvt('mudanca_capital')">💰 Mudar Capital</button>
+          <button class="btn btn-purple btn-sm" onclick="openEvt('alteracao_contratual')">📝 Alteração Contratual</button>
+          <button class="btn btn-sm" style="background:var(--cyan);color:#000" onclick="openEvt('mudanca_endereco')">📍 Mudar Endereço</button>
+          <button class="btn btn-sm" style="background:var(--orange);color:#000" onclick="openEvt('suspensao')">⏸️ Suspensão</button>
+          <button class="btn btn-sm" style="background:var(--green);color:#000" onclick="openEvt('reabertura')">▶️ Reabertura</button>
+          <button class="btn btn-sm" style="background:var(--yellow);color:#000" onclick="openEvt('certidao')">📄 Certidão</button>
+          <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="openEvt('baixa')">❌ Baixa</button>
+        </div>
+      </div></div>
+      <div id="mst" class="hidden"><div class="card"><h2>📊 Estado Atual</h2>
+        <pre style="font-size:0.8rem;color:var(--text2);white-space:pre-wrap">${JSON.stringify(e,null,2)}</pre>
+      </div></div>
+    `;
+  }catch(e){dv.innerHTML='<div class="empty">Erro: '+e.message+'</div>'}
+}
+function showTab(n,el){document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['mtl','mev','mst'].forEach(id=>document.getElementById(id).classList.add('hidden'));document.getElementById({tl:'mtl',ev:'mev',st:'mst'}[n]).classList.remove('hidden')}
+
+const EVT_FORMS={
+  adicao_socio:{title:'👤 Adicionar Sócio',fields:[{id:'f1',label:'CPF Sócio',ph:'12345678901'},{id:'f2',label:'Nome',ph:''},{id:'f3',label:'Participação (%)',ph:'30'},{id:'f4',label:'Data Entrada',ph:'01/06/2024'},{id:'f5',label:'Tipo',type:'sel',opts:['QUOTISTA','ACIONISTA','ADMINISTRADOR']}]},
+  remocao_socio:{title:'👤 Remover Sócio',fields:[{id:'f1',label:'CPF Sócio',ph:''},{id:'f2',label:'Nome',ph:''},{id:'f3',label:'Data Saída',ph:'01/01/2025'},{id:'f4',label:'Motivo',ph:''}]},
+  mudanca_quota:{title:'📊 Mudança de Quota',fields:[{id:'f1',label:'CPF Sócio',ph:''},{id:'f2',label:'Nome',ph:''},{id:'f3',label:'Part. Anterior (%)',ph:'30'},{id:'f4',label:'Part. Nova (%)',ph:'50'},{id:'f5',label:'Data',ph:'01/06/2024'}]},
+  mudanca_capital:{title:'💰 Mudança de Capital',fields:[{id:'f1',label:'Capital Anterior',ph:'10000'},{id:'f2',label:'Capital Novo',ph:'50000'},{id:'f3',label:'Data',ph:'01/01/2025'},{id:'f4',label:'Descrição',ph:''}]},
+  alteracao_contratual:{title:'📝 Alteração Contratual',fields:[{id:'f1',label:'Data',ph:'01/06/2024'},{id:'f2',label:'Descrição',ph:''},{id:'f3',label:'Tipo',type:'sel',opts:['GERAL','OBJETO','NOME','ENDERECO']}]},
+  mudanca_endereco:{title:'📍 Mudança de Endereço',fields:[{id:'f1',label:'Logradouro',ph:'Rua B, 200'},{id:'f2',label:'Cidade',ph:''},{id:'f3',label:'UF',ph:'SP'},{id:'f4',label:'CEP',ph:''},{id:'f5',label:'Data',ph:'01/06/2024'}]},
+  suspensao:{title:'⏸️ Suspensão',fields:[{id:'f1',label:'Data',ph:'01/01/2025'},{id:'f2',label:'Motivo',ph:''}]},
+  reabertura:{title:'▶️ Reabertura',fields:[{id:'f1',label:'Data',ph:'01/06/2025'},{id:'f2',label:'Descrição',ph:''}]},
+  certidao:{title:'📄 Certidão',fields:[{id:'f1',label:'Tipo',type:'sel',opts:['NEGATIVA','POSITIVA','REGULARIDADE']},{id:'f2',label:'Número',ph:''},{id:'f3',label:'Data Emissão',ph:'01/06/2024'},{id:'f4',label:'Órgão',ph:'Receita Federal'}]},
+  baixa:{title:'❌ Baixa',fields:[{id:'f1',label:'Data',ph:'01/01/2025'},{id:'f2',label:'Motivo',ph:''}]},
+};
+let curEvtType='';
+function openEvt(t){curEvtType=t;const f=EVT_FORMS[t];document.getElementById('modalTitle').textContent=f.title;document.getElementById('modalBody').innerHTML=f.fields.map(fd=>{if(fd.type==='sel')return`<div style="margin-bottom:8px"><label>${fd.label}</label><select id="${fd.id}">${fd.opts.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;return`<div style="margin-bottom:8px"><label>${fd.label}</label><input id="${fd.id}" placeholder="${fd.ph||''}"></div>`}).join('');document.getElementById('modalSubmit').onclick=submitEvt;document.getElementById('modalOverlay').classList.add('active')}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('active')}
+const v=id=>document.getElementById(id)?.value||'';
+async function submitEvt(){
+  const c=currentCnpj;
+  try{
+    if(curEvtType==='adicao_socio')await api(`/api/co/${c}/event`,'POST',{event_type:'ADICAO_SOCIO',payload:{socio:{cpf:v('f1'),nome:v('f2')},participacao:parseFloat(v('f3'))||0,data_entrada:v('f4'),tipo_socio:v('f5')}});
+    else if(curEvtType==='remocao_socio')await api(`/api/co/${c}/event`,'POST',{event_type:'REMOCAO_SOCIO',payload:{socio:{cpf:v('f1'),nome:v('f2')},data_saida:v('f3'),motivo:v('f4')}});
+    else if(curEvtType==='mudanca_quota')await api(`/api/co/${c}/event`,'POST',{event_type:'MUDANCA_QUOTA',payload:{socio:{cpf:v('f1'),nome:v('f2')},participacao_anterior:parseFloat(v('f3'))||0,participacao_nova:parseFloat(v('f4'))||0,data_mudanca:v('f5')}});
+    else if(curEvtType==='mudanca_capital')await api(`/api/co/${c}/event`,'POST',{event_type:'MUDANCA_CAPITAL',payload:{capital_anterior:parseFloat(v('f1'))||0,capital_novo:parseFloat(v('f2'))||0,data_mudanca:v('f3'),descricao:v('f4')}});
+    else if(curEvtType==='alteracao_contratual')await api(`/api/co/${c}/event`,'POST',{event_type:'ALTERACAO_CONTRATUAL',payload:{data_alteracao:v('f1'),descricao:v('f2'),tipo_alteracao:v('f3')}});
+    else if(curEvtType==='mudanca_endereco')await api(`/api/co/${c}/event`,'POST',{event_type:'MUDANCA_ENDERECO',payload:{novo_endereco:{logradouro:v('f1'),cidade:v('f2'),uf:v('f3'),cep:v('f4')},data_mudanca:v('f5')}});
+    else if(curEvtType==='suspensao')await api(`/api/co/${c}/event`,'POST',{event_type:'SUSPENSAO',payload:{data_suspensao:v('f1'),motivo:v('f2')}});
+    else if(curEvtType==='reabertura')await api(`/api/co/${c}/event`,'POST',{event_type:'REABERTURA',payload:{data_reabertura:v('f1'),descricao:v('f2')}});
+    else if(curEvtType==='certidao')await api(`/api/co/${c}/event`,'POST',{event_type:'CERTIDAO',payload:{tipo_certidao:v('f1'),numero:v('f2'),data_emissao:v('f3'),orgao_emissor:v('f4')}});
+    else if(curEvtType==='baixa')await api(`/api/co/${c}/event`,'POST',{event_type:'BAIXA',payload:{data_baixa:v('f1'),motivo:v('f2')}});
+    toast('Evento registrado!');closeModal();loadDetail();loadCoList();
+  }catch(e){toast(e.message,false)}
+}
+
+function openNewCo(){
+  document.getElementById('modalTitle').textContent='🏢 Nova Empresa';
+  document.getElementById('modalBody').innerHTML=[
+    {l:'CNPJ',p:'12345678000190'},{l:'Razão Social',p:''},{l:'Nome Fantasia',p:''},
+    {l:'Data Constituição',p:'01/01/2024'},{l:'Tipo',t:'sel',o:['LTDA','SA','MEI','SLU']},
+    {l:'Porte',t:'sel',o:['ME','EPP','MEI','MEDIO','GRANDE']},{l:'Capital Social',p:'10000'},
+    {l:'Atividade Principal (CNAE)',p:'6201501'},{l:'CPF Responsável',p:''},{l:'Nome Responsável',p:''},
+    {l:'UF',p:'SP'},{l:'Cidade',p:'Sao Paulo'},
+  ].map(f=>f.t==='sel'?`<div style="margin-bottom:8px"><label>${f.l}</label><select id="nc_${f.l.replace(/[^a-z]/gi,'')}">${f.o.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`:`<div style="margin-bottom:8px"><label>${f.l}</label><input id="nc_${f.l.replace(/[^a-z]/gi,'')}" placeholder="${f.p}"></div>`).join('');
+  document.getElementById('modalSubmit').onclick=async()=>{
+    const g=id=>document.getElementById('nc_'+id)?.value||'';
+    try{
+      await api('/api/co','POST',{cnpj:g('CNPJ'),razao_social:g('RazoSocial'),nome_fantasia:g('NomeFantasia'),data_constituicao:g('DataConstituio'),tipo_empresa:g('Tipo'),porte:g('Porte'),capital_social:parseFloat(g('CapitalSocial'))||0,natureza_juridica:'2062',atividade_principal:g('AtividadePrincipal'),responsavel_cpf:g('CPFResponsvel'),responsavel_nome:g('NomeResponsvel'),uf:g('UF'),cidade:g('Cidade')});
+      toast('Empresa criada!');closeModal();loadCoList();
+    }catch(e){toast(e.message,false)}
+  };
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+loadCoList();
+</script>
+</body>
+</html>

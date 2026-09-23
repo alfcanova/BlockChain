@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockchain IM — Imóveis</title>
+<style>
+  :root {
+    --bg: #0a0e17; --surface: #111827; --surface2: #1e293b;
+    --border: #334155; --text: #e2e8f0; --text2: #94a3b8;
+    --accent: #22c55e; --accent2: #10b981; --green: #22c55e;
+    --red: #ef4444; --yellow: #eab308; --cyan: #06b6d4;
+    --gradient1: linear-gradient(135deg, #0f2922 0%, #0f172a 50%, #1a2e1a 100%);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  
+  .hero {
+    background: var(--gradient1);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 32px 48px;
+    text-align: center;
+  }
+  .hero h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 12px; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { font-size: 1.1rem; color: var(--text2); max-width: 600px; margin: 0 auto 24px; }
+  .hero .badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .hero .badge { background: var(--surface2); border: 1px solid var(--border); padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; color: var(--text2); }
+  .hero .badge strong { color: var(--green); }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
+  .section { margin-bottom: 48px; }
+  .section h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 16px; color: var(--accent); }
+  .section p { color: var(--text2); line-height: 1.7; margin-bottom: 16px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; transition: all 0.3s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card .icon { font-size: 2rem; margin-bottom: 12px; }
+  .card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .card p { font-size: 0.9rem; color: var(--text2); margin-bottom: 0; }
+
+  .timeline-demo {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; margin-top: 16px;
+  }
+  .tl-item {
+    display: flex; gap: 16px; padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tl-item:last-child { border-bottom: none; }
+  .tl-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .tl-dot.green { background: var(--green); }
+  .tl-dot.blue { background: #3b82f6; }
+  .tl-dot.purple { background: #8b5cf6; }
+  .tl-dot.yellow { background: var(--yellow); }
+  .tl-dot.red { background: var(--red); }
+  .tl-dot.cyan { background: var(--cyan); }
+  .tl-content h4 { font-size: 0.95rem; margin-bottom: 4px; }
+  .tl-content p { font-size: 0.85rem; color: var(--text2); margin: 0; }
+  .tl-content .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 8px;
+    font-size: 0.7rem; font-weight: 600; margin-left: 8px;
+  }
+  .tag-green { background: #166534; color: #86efac; }
+  .tag-blue { background: #1e3a5f; color: #93c5fd; }
+  .tag-red { background: #991b1b; color: #fca5a5; }
+  .tag-purple { background: #581c87; color: #d8b4fe; }
+  .tag-yellow { background: #854d0e; color: #fde047; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .stat-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; text-align: center;
+  }
+  .stat-box .num { font-size: 1.8rem; font-weight: 800; color: var(--green); }
+  .stat-box .label { font-size: 0.8rem; color: var(--text2); margin-top: 4px; }
+
+  .tech-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .tech-tag {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; color: var(--text2);
+  }
+
+  .cta-section { text-align: center; padding: 48px 24px; }
+  .btn-cta {
+    display: inline-block; padding: 14px 32px; background: var(--green);
+    color: #000; text-decoration: none; border-radius: 10px; font-weight: 700;
+    font-size: 1rem; transition: all 0.3s; margin: 8px;
+  }
+  .btn-cta:hover { background: #16a34a; transform: translateY(-2px); }
+  .btn-cta.secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+
+  .footer { text-align: center; padding: 24px; color: var(--text2); font-size: 0.85rem; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Blockchain <span>IM</span></h1>
+  <p>Registro imutável de imóveis no espaço geográfico real — do terreno bruto à construção, transferências e ônus reais.</p>
+  <div class="badges">
+    <span class="badge"><strong>Matrícula</strong> Cartório</span>
+    <span class="badge"><strong>Coordenadas</strong> SIRGAS 2000</span>
+    <span class="badge"><strong>ECDSA</strong> Assinatura</span>
+    <span class="badge"><strong>v1.0</strong></span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="section">
+    <h2>O que é?</h2>
+    <p>
+      Uma cadeia de blocos imutável que registra <strong>toda a vida de um imóvel</strong>,
+      desde o cadastro do terreno bruto (bloco gênesis) com coordenadas geográficas reais,
+      passando por construção, demolição, reforma, transferências, garantias e leilões.
+    </p>
+    <p>
+      Cada bloco pode ser assinado por cartórios, engenheiros e autoridades competentes.
+      Suporta referências cruzadas com <strong>blockchain_pf</strong> (pessoas físicas) e <strong>blockchain_mo</strong> (veículos).
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>Funcionalidades</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">🏗️</div>
+        <h3>Terreno (Gênesis)</h3>
+        <p>Cadastro completo: matrícula, endereço, coordenadas GPS, zonaamento, IPTU.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🏠</div>
+        <h3>Construção</h3>
+        <p>Edificação com área, pavimentos, responsável técnico e alvará.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔨</div>
+        <h3>Demolição / Reforma</h3>
+        <p>Alteração de área construída com delta de área e responsável.</p>
+      </div>
+      <div class="card">
+        <div class="icon">💰</div>
+        <h3>Compra / Venda</h3>
+        <p>Transferência com valor, escritura e cartório.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🎁</div>
+        <h3>Doação / Herança</h3>
+        <p>Transferência gratuita ou por inventário com herdeiros.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🏦</div>
+        <h3>Hipoteca / Garantia</h3>
+        <p>Ônus reais com credor, valor, taxa e prazo.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚖️</div>
+        <h3>Leilão / Confisco</h3>
+        <p>Venda judicial ou extrajudicial e apreensão.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📐</div>
+        <h3>Desmembramento / Fusão</h3>
+        <p>Subdivisão em lotes ou união de imóveis.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📋</div>
+        <h3>Certidões / Zoneamento</h3>
+        <p>Certidões emitidas e alteração de uso do solo.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Exemplo de Timeline</h2>
+    <div class="timeline-demo">
+      <div class="tl-item">
+        <div class="tl-dot green"></div>
+        <div class="tl-content">
+          <h4>Bloco #0 — TERRENO <span class="tag tag-green">GENESIS</span></h4>
+          <p>Mat: 879021-3 | Rua Rio de Janeiro, 3960, São Paulo, SP | 450m² | ZER-2</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot blue"></div>
+        <div class="tl-content">
+          <h4>Bloco #1 — CONSTRUÇÃO <span class="tag tag-blue">ESTRUTURAL</span></h4>
+          <p>Residência 280m² | 2 pavimentos | Eng. João Silva | Alvará ALV-2020-001</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot purple"></div>
+        <div class="tl-content">
+          <h4>Bloco #2 — GARANTIA <span class="tag tag-yellow">FINANCEIRO</span></h4>
+          <p>Hipoteca | Banco do Brasil | R$ 350.000 | Taxa: 10.5% a.a. | 240 meses</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot cyan"></div>
+        <div class="tl-content">
+          <h4>Bloco #3 — COMPRA/VENDA <span class="tag tag-purple">TRANSFERÊNCIA</span></h4>
+          <p>Carlos Souza → Maria Santos | R$ 850.000 | Escritura ESC-2024-001</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Estatísticas</h2>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="num">16</div>
+        <div class="label">Tipos de Evento</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">GPS</div>
+        <div class="label">SIRGAS 2000</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">IPTU</div>
+        <div class="label">Código Fiscal</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">Matrícula</div>
+        <div class="label">Cartório</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Stack Técnica</h2>
+    <div class="tech-list">
+      <span class="tech-tag">Python 3.14</span>
+      <span class="tech-tag">FastAPI</span>
+      <span class="tech-tag">ECDSA P-256</span>
+      <span class="tech-tag">SHA-256</span>
+      <span class="tech-tag">Proof of Work</span>
+      <span class="tech-tag">SQLite</span>
+      <span class="tech-tag">Cross-chain PF</span>
+      <span class="tech-tag">Coordenadas GPS</span>
+    </div>
+  </div>
+</div>
+
+<div class="cta-section">
+  <a href="/api/docs" class="btn-cta">📄 Ver API Docs (Swagger)</a>
+  <a href="/api/im" class="btn-cta secondary">🏠 Listar Imóveis</a>
+</div>
+
+<div class="footer">
+  Blockchain IM v1.0 — Imóveis no Espaço Geográfico Real | ECDSA P-256 | SHA-256 | Proof of Work
+</div>
+
+</body>
+</html>

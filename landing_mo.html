@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockchain MO — Veículos (Móveis)</title>
+<style>
+  :root {
+    --bg: #0a0e17; --surface: #111827; --surface2: #1e293b;
+    --border: #334155; --text: #e2e8f0; --text2: #94a3b8;
+    --accent: #f59e0b; --accent2: #d97706; --green: #22c55e;
+    --red: #ef4444; --yellow: #eab308; --cyan: #06b6d4;
+    --gradient1: linear-gradient(135deg, #2a1a00 0%, #0f172a 50%, #1a1a00 100%);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  
+  .hero {
+    background: var(--gradient1);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 32px 48px;
+    text-align: center;
+  }
+  .hero h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 12px; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { font-size: 1.1rem; color: var(--text2); max-width: 600px; margin: 0 auto 24px; }
+  .hero .badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .hero .badge { background: var(--surface2); border: 1px solid var(--border); padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; color: var(--text2); }
+  .hero .badge strong { color: var(--accent); }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
+  .section { margin-bottom: 48px; }
+  .section h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 16px; color: var(--accent); }
+  .section p { color: var(--text2); line-height: 1.7; margin-bottom: 16px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; transition: all 0.3s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card .icon { font-size: 2rem; margin-bottom: 12px; }
+  .card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .card p { font-size: 0.9rem; color: var(--text2); margin-bottom: 0; }
+
+  .timeline-demo {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; margin-top: 16px;
+  }
+  .tl-item {
+    display: flex; gap: 16px; padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tl-item:last-child { border-bottom: none; }
+  .tl-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .tl-dot.green { background: var(--green); }
+  .tl-dot.blue { background: #3b82f6; }
+  .tl-dot.purple { background: #8b5cf6; }
+  .tl-dot.yellow { background: var(--yellow); }
+  .tl-dot.red { background: var(--red); }
+  .tl-dot.cyan { background: var(--cyan); }
+  .tl-dot.orange { background: #f97316; }
+  .tl-content h4 { font-size: 0.95rem; margin-bottom: 4px; }
+  .tl-content p { font-size: 0.85rem; color: var(--text2); margin: 0; }
+  .tl-content .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 8px;
+    font-size: 0.7rem; font-weight: 600; margin-left: 8px;
+  }
+  .tag-green { background: #166534; color: #86efac; }
+  .tag-blue { background: #1e3a5f; color: #93c5fd; }
+  .tag-red { background: #991b1b; color: #fca5a5; }
+  .tag-purple { background: #581c87; color: #d8b4fe; }
+  .tag-yellow { background: #854d0e; color: #fde047; }
+  .tag-orange { background: #7c2d12; color: #fdba74; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .stat-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; text-align: center;
+  }
+  .stat-box .num { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+  .stat-box .label { font-size: 0.8rem; color: var(--text2); margin-top: 4px; }
+
+  .tech-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .tech-tag {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; color: var(--text2);
+  }
+
+  .cta-section { text-align: center; padding: 48px 24px; }
+  .btn-cta {
+    display: inline-block; padding: 14px 32px; background: var(--accent);
+    color: #000; text-decoration: none; border-radius: 10px; font-weight: 700;
+    font-size: 1rem; transition: all 0.3s; margin: 8px;
+  }
+  .btn-cta:hover { background: #d97706; transform: translateY(-2px); }
+  .btn-cta.secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+
+  .footer { text-align: center; padding: 24px; color: var(--text2); font-size: 0.85rem; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Blockchain <span>MO</span></h1>
+  <p>Registro imutável da vida útil de veículos — da fabricação (gênesis) à baixa, incluindo transferências, sinistros, multas e recalls.</p>
+  <div class="badges">
+    <span class="badge"><strong>Placa</strong> Mercosul</span>
+    <span class="badge"><strong>RENAVAN</strong> 11 dígitos</span>
+    <span class="badge"><strong>VIN</strong> Chassi 17 chars</span>
+    <span class="badge"><strong>v1.0</strong></span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="section">
+    <h2>O que é?</h2>
+    <p>
+      Uma cadeia de blocos imutável que registra <strong>toda a vida útil de um veículo</strong>,
+      desde a fabricação na fábrica (bloco gênesis) até a baixa definitiva. Cada evento — compra/venda,
+      sinistro, multa, recall de fábrica, troca de peças — é um bloco encadeado e assinado digitalmente.
+    </p>
+    <p>
+      Suporta <strong>múltiplos participantes</strong>: proprietários, oficinas, seguradoras, fabricantes,
+      DETRAN e autoridades policiais. Ligações cross-chain com <strong>blockchain_pf</strong> (pessoas)
+      e <strong>blockchain_im</strong> (imóveis — garagem/estacionamento).
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>Funcionalidades</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">🏭</div>
+        <h3>Fabricação (Gênesis)</h3>
+        <p>Placa, RENAVAN, chassi, marca, modelo, motor, carroceria, freios, suspensão.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🚗</div>
+        <h3>Compra / Venda</h3>
+        <p>Transferência com valor, odomêtro, nota fiscal e cartório.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚠️</div>
+        <h3>Sinistro / Perda Total</h3>
+        <p>Acidente com BO, seguradora, perito, peças danificadas e indenização.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔧</div>
+        <h3>Troca de Peças</h3>
+        <p>Substituição com número de série, origem (original/remanufatura) e validação.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🚨</div>
+        <h3>Recall de Fábrica</h3>
+        <p>Chamada de volta com número, peça defeituosa, risco e solução oferecida.</p>
+      </div>
+      <div class="card">
+        <div class="icon">💸</div>
+        <h3>Multas</h3>
+        <p>Auto de infração com enquadramento CTB, pontos e valor da multa.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🏦</div>
+        <h3>Garantia / Empréstimo</h3>
+        <p>Alienação fiduciária, penhor ou hipoteca com credor e prazo.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚖️</div>
+        <h3>Leilão / Confisco</h3>
+        <p>Venda judicial/extrajudicial e apreensão policial.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔍</div>
+        <h3>Validação de Peças</h3>
+        <p>Autenticação ou detecção de falsificação por validador habilitado.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Exemplo de Timeline</h2>
+    <div class="timeline-demo">
+      <div class="tl-item">
+        <div class="tl-dot green"></div>
+        <div class="tl-content">
+          <h4>Bloco #0 — FABRICAÇÃO <span class="tag tag-green">GENESIS</span></h4>
+          <p>ABC1D23 | VW Gol 1.0 | 2024 | Prata | FLEX | Chassi: 9BWZZZ377VT000001</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot blue"></div>
+        <div class="tl-content">
+          <h4>Bloco #1 — COMPRA/VENDA <span class="tag tag-blue">TRANSFERÊNCIA</span></h4>
+          <p>João Silva comprou por R$ 55.000 | Odomêtro: 0 km | Nota Fiscal NF-2024-001</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot yellow"></div>
+        <div class="tl-content">
+          <h4>Bloco #2 — REVISÃO <span class="tag tag-yellow">MANUTENÇÃO</span></h4>
+          <p>Revisão preventiva | 10.000 km | Óleo, filtros, freios | R$ 450,00</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot red"></div>
+        <div class="tl-content">
+          <h4>Bloco #3 — MULTA <span class="tag tag-red">INFRAÇÃO</span></h4>
+          <p>Art. 163 CTB | Sinal vermelho | 5 pontos | R$ 293,47 | Av. Paulista, SP</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot orange"></div>
+        <div class="tl-content">
+          <h4>Bloco #4 — RECALL <span class="tag tag-orange">FÁBRICA</span></h4>
+          <p>RC-2024-001 | Airbag | Risco ALTO | Solução: Troca do módulo | Gratuito</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot purple"></div>
+        <div class="tl-content">
+          <h4>Bloco #5 — SINISTRO <span class="tag tag-purple">ACIDENTE</span></h4>
+          <p>Colisão frontal | BO-2024-001 | Porto Seguro | Dano: R$ 12.000 | Reparado</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot cyan"></div>
+        <div class="tl-content">
+          <h4>Bloco #6 — TROCA DE PEÇA <span class="tag tag-blue">PEÇA</span></h4>
+          <p>Motor remanufaturado | PS-MOT-12345 | 80.000 km | Oficina Mecânica XYZ</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Estados do Veículo</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">✅</div>
+        <h3>REGULAR</h3>
+        <p>Estado padrão. Todos os eventos permitidos.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔨</div>
+        <h3>EM LEILÃO</h3>
+        <p>Veículo em processo de leilão. Transferências bloqueadas.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔒</div>
+        <h3>GARANTIDO</h3>
+        <p>Dado como garantia de empréstimo. Venda bloqueada.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🚨</div>
+        <h3>CONFISCADO</h3>
+        <p>Apreensão judicial. Eventos de transferência bloqueados.</p>
+      </div>
+      <div class="card">
+        <div class="icon">💥</div>
+        <h3>PERDA TOTAL</h3>
+        <p>Destruição total por sinistro. Só permite baixa.</p>
+      </div>
+      <div class="card">
+        <div class="icon">❌</div>
+        <h3>BAIXADO</h3>
+        <p>Baixa definitiva. Todos os eventos bloqueados.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Estatísticas</h2>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="num">18</div>
+        <div class="label">Tipos de Evento</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">VIN</div>
+        <div class="label">17 caracteres</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">Mercosul</div>
+        <div class="label">Placa Nova</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">CTB</div>
+        <div class="label">Código Trânsito</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Stack Técnica</h2>
+    <div class="tech-list">
+      <span class="tech-tag">Python 3.14</span>
+      <span class="tech-tag">FastAPI</span>
+      <span class="tech-tag">ECDSA P-256</span>
+      <span class="tech-tag">SHA-256</span>
+      <span class="tech-tag">Proof of Work</span>
+      <span class="tech-tag">SQLite</span>
+      <span class="tech-tag">Cross-chain PF/IM</span>
+      <span class="tech-tag">Placa Mercosul</span>
+    </div>
+  </div>
+</div>
+
+<div class="cta-section">
+  <a href="/api/docs" class="btn-cta">📄 Ver API Docs (Swagger)</a>
+  <a href="/api/mo" class="btn-cta secondary">🚗 Listar Veículos</a>
+</div>
+
+<div class="footer">
+  Blockchain MO v1.0 — Veículos / Móveis | ECDSA P-256 | SHA-256 | Proof of Work
+</div>
+
+</body>
+</html>

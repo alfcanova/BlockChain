@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+.pytest_cache/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Demo output (generated)
+demo_output/
+
+# Temporary files
+*.tmp
+*.bak
+
+# OS
+Thumbs.db
+.DS_Store

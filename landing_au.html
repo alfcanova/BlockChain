@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockchain AU — Autoridades</title>
+<style>
+  :root {
+    --bg: #0a0e17; --surface: #111827; --surface2: #1e293b;
+    --border: #334155; --text: #e2e8f0; --text2: #94a3b8;
+    --accent: #3b82f6; --accent2: #8b5cf6; --green: #22c55e;
+    --red: #ef4444; --yellow: #eab308; --cyan: #06b6d4;
+    --rose: #f43f5e;
+    --gradient1: linear-gradient(135deg, #4a1942 0%, #0f172a 50%, #1a1040 100%);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .hero {
+    background: var(--gradient1);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 32px 48px;
+    text-align: center;
+  }
+  .hero h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 12px; }
+  .hero h1 span { color: var(--rose); }
+  .hero p { font-size: 1.1rem; color: var(--text2); max-width: 600px; margin: 0 auto 24px; }
+  .hero .badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .hero .badge { background: var(--surface2); border: 1px solid var(--border); padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; color: var(--text2); }
+  .hero .badge strong { color: var(--rose); }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
+
+  .section { margin-bottom: 48px; }
+  .section h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 16px; color: var(--accent2); }
+  .section p { color: var(--text2); line-height: 1.7; margin-bottom: 16px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; transition: all 0.3s;
+  }
+  .card:hover { border-color: var(--rose); transform: translateY(-2px); }
+  .card .icon { font-size: 2rem; margin-bottom: 12px; }
+  .card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .card p { font-size: 0.9rem; color: var(--text2); margin-bottom: 0; }
+
+  .hierarchy-demo {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; margin-top: 16px;
+  }
+  .h-level { padding: 10px 16px; margin: 4px 0; border-radius: 8px; font-size: 0.9rem; }
+  .h-n0 { background: rgba(244,63,94,.12); border-left: 4px solid var(--rose); }
+  .h-n1 { background: rgba(59,130,246,.12); border-left: 4px solid var(--accent); margin-left: 24px; }
+  .h-n2 { background: rgba(34,197,94,.12); border-left: 4px solid var(--green); margin-left: 48px; }
+  .h-tag { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; margin-right: 8px; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .stat-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; text-align: center;
+  }
+  .stat-box .num { font-size: 1.8rem; font-weight: 800; color: var(--rose); }
+  .stat-box .label { font-size: 0.8rem; color: var(--text2); margin-top: 4px; }
+
+  .cta { text-align: center; margin-top: 40px; }
+  .cta a {
+    display: inline-block; padding: 14px 32px; background: var(--rose); color: white;
+    border-radius: 10px; font-weight: 700; font-size: 1rem; text-decoration: none;
+    transition: all 0.3s;
+  }
+  .cta a:hover { opacity: 0.9; transform: translateY(-2px); }
+  .footer { text-align: center; padding: 32px; color: var(--text2); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 48px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>&#x1f511; Blockchain <span>AU</span></h1>
+  <p>Sistema de governança hierárquica para autoridades — gerencia quem pode escrever em cada blockchain do projeto.</p>
+  <div class="badges">
+    <div class="badge"><strong>3 tiers</strong> hierárquicos</div>
+    <div class="badge"><strong>7 domínios</strong> governados</div>
+    <div class="badge"><strong>Confirmção</strong> em 2 fases</div>
+    <div class="badge"><strong>ECDSA</strong> + PoW</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="section">
+    <h2>O que é a Blockchain AU?</h2>
+    <p>A blockchain de Autoridades (AU) é a camada de governança do sistema Blockchain Brasil. Enquanto as outras blockchains (PF, IM, MO, CO, EM, AC, AN) armazenam dados de domínio, a AU controla <strong>quem tem permissão para escrever</strong> nessas blockchains.</p>
+    <p>Ela implementa uma hierarquia inspirada na administração pública brasileira, com 3 níveis de autoridade que se autogestem através de um fluxo de confirmação em duas fases.</p>
+  </div>
+
+  <div class="section">
+    <h2>Hierarquia de Autoridades</h2>
+    <p>Cada autoridade é nomeada por uma autoridade superior e governa um escopo (domínio + região):</p>
+    <div class="hierarchy-demo">
+      <div class="h-level h-n0">
+        <span class="h-tag" style="background:#881337;color:#fda4af">N0</span>
+        <strong>Brasil</strong> — admin01, admin02, admin03
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:4px">Gerencia qualquer N1 ou N2 em qualquer escopo/UF. Alterações são confirmadas pelos outros 2 N0.</div>
+      </div>
+      <div class="h-level h-n1">
+        <span class="h-tag" style="background:#1e3a5f;color:#93c5fd">N1</span>
+        <strong>UF</strong> — ex: n1.pf.SP, n1.mo.RJ
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:4px">Gerencia N2 no mesmo escopo+UF. Alterações são confirmadas pelo N0 que a nomeou.</div>
+      </div>
+      <div class="h-level h-n2">
+        <span class="h-tag" style="background:#166534;color:#86efac">N2</span>
+        <strong>Cidade</strong> — ex: n2.co.MG.belo-horizonte
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:4px">Gerencia apenas dados na sua cidade. Alterações são confirmadas pelo N1 que a nomeou.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Domínios Governados</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">👤</div>
+        <h3>PF — Pessoas Físicas</h3>
+        <p>Eventos vitais: nascimento, casamento, divórcio, óbito, vacinas.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🏠</div>
+        <h3>IM — Imóveis</h3>
+        <p>Registro imobiliário: terreno, construção, compra/venda, hipoteca.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🚗</div>
+        <h3>MO — Veículos</h3>
+        <p>Vida útil: fabricação, transferências, sinistros, multas.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🏢</div>
+        <h3>CO — Empresas</h3>
+        <p>CNPJ: constituição, sócios, fusões, dissolução.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⛵</div>
+        <h3>EM — Embarcações</h3>
+        <p>Registro naval: construção, transferências, inspeções.</p>
+      </div>
+      <div class="card">
+        <div class="icon">✈️</div>
+        <h3>AC — Aeronaves</h3>
+        <p>Registro aeronáutico: fabricação, manutenção, airworthiness.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🐾</div>
+        <h3>AN — Animais</h3>
+        <p>Registro animal: nascimento, vacinas, castração, transferências.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Fluxo de Confirmação (2 Fases)</h2>
+    <p>Alterações nas autoridades seguem um protocolo de aprovação para garantir que nenhuma mudança unilateral passe sem revisão:</p>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-box">
+        <div class="num" style="color:var(--yellow)">1</div>
+        <div class="label">Solicitação</div>
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:8px">Autoridade altera seus próprios dados → entra como <strong>PENDENTE</strong></div>
+      </div>
+      <div class="stat-box">
+        <div class="num" style="color:var(--green)">2a</div>
+        <div class="label">Confirmação</div>
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:8px">Superior confirma → estado atualizado → <strong>CONFIRMADA</strong></div>
+      </div>
+      <div class="stat-box">
+        <div class="num" style="color:var(--red)">2b</div>
+        <div class="label">Recusa</div>
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:8px">Superior recusa → mantém estado anterior → <strong>RECUSADA</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <a href="/admin/au">🪪 Acessar Painel de Administração</a>
+  </div>
+
+  <div class="section" style="margin-top:48px">
+    <h2>API Disponível</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Árvore Hierárquica</h3>
+        <p><code>GET /api/au/arvore</code> — Árvore completa Brasil → UF → cidade.</p>
+      </div>
+      <div class="card">
+        <h3>Estado da Autoridade</h3>
+        <p><code>GET /api/au/{uid}</code> — Dados e estado vigente.</p>
+      </div>
+      <div class="card">
+        <h3>Alterar & Confirmar</h3>
+        <p><code>POST /api/au/{uid}/alterar</code> — Solicita alteração (PENDENTE).<br>
+        <code>POST /api/au/{uid}/confirmar</code> — Confirma.<br>
+        <code>POST /api/au/{uid}/recusar</code> — Recusa.</p>
+      </div>
+      <div class="card">
+        <h3>Gerenciar Dados</h3>
+        <p><code>GET/POST /api/au/{uid}/dados/{domain}</code> — Registros no escopo da autoridade.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Blockchain Brasil v4.0 | ECDSA P-256 | SHA-256 | Proof of Work | FastAPI
+</div>
+
+</body>
+</html>

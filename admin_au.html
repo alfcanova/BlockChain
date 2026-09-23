@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin AU — Blockchain de Autoridades</title>
+<style>
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1e293b;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#3b82f6;--accent2:#8b5cf6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--cyan:#06b6d4;--orange:#f97316;--rose:#f43f5e}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#1e3a5f,#0f172a);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50}
+.header h1{font-size:1.3rem;font-weight:700}
+.header .nav{margin-left:auto;display:flex;gap:8px}
+.header .nav a{color:var(--text2);text-decoration:none;font-size:0.85rem;padding:6px 12px;border-radius:6px;transition:all .2s}
+.header .nav a:hover{background:var(--surface2);color:var(--text)}
+.header .nav a.active{background:var(--rose);color:#fff}
+.badge{background:var(--rose);padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:600}
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.grid2{display:grid;grid-template-columns:380px 1fr;gap:16px}
+@media(max-width:768px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h2{font-size:1rem;margin-bottom:10px;color:var(--cyan);display:flex;align-items:center;gap:6px}
+.card h3{font-size:0.9rem;margin:8px 0 6px;color:var(--accent2)}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:0.85rem;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+label{font-size:0.75rem;color:var(--text2);margin-bottom:2px;display:block}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-green{background:var(--green);color:#000}.btn-purple{background:var(--accent2);color:#fff}
+.btn-red{background:var(--red);color:#fff}.btn-sm{padding:5px 12px;font-size:0.75rem}
+.btn-rose{background:var(--rose);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:0.7rem;font-weight:600}
+.tag-green{background:#166534;color:#86efac}.tag-red{background:#991b1b;color:#fca5a5}
+.tag-yellow{background:#854d0e;color:#fde047}.tag-blue{background:#1e3a5f;color:#93c5fd}
+.tag-purple{background:#581c87;color:#d8b4fe}.tag-cyan{background:#164e63;color:#67e8f9}
+.tag-rose{background:#881337;color:#fda4af}.tag-orange{background:#7c2d12;color:#fdba74}
+.empty{text-align:center;padding:30px;color:var(--text2);font-size:0.85rem}
+.empty .icon{font-size:2.5rem;margin-bottom:8px}
+.chain-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:6px;cursor:pointer;transition:all .2s;display:flex;justify-content:space-between;align-items:center}
+.chain-item:hover{border-color:var(--rose)}.chain-item.sel{border-color:var(--rose);background:rgba(244,63,94,.1)}
+.chain-item .info{flex:1}.chain-item .name{font-weight:600;font-size:0.9rem}
+.chain-item .id{color:var(--text2);font-size:0.8rem}.chain-item .meta{text-align:right;font-size:0.75rem;color:var(--text2)}
+.tl-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.status-bar{background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;gap:16px;font-size:0.8rem;margin-bottom:12px;flex-wrap:wrap}
+.status-bar .stat{display:flex;flex-direction:column}.status-bar .stat-label{color:var(--text2);font-size:0.7rem}.status-bar .stat-value{font-weight:700;font-size:1rem}
+.tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.tab{padding:7px 14px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);font-size:0.85rem;transition:all .2s}
+.tab:hover{color:var(--text)}.tab.active{color:var(--rose);border-bottom-color:var(--rose)}
+.hidden{display:none}
+.toast{position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;z-index:999;animation:slideIn .3s}
+.toast-ok{background:#166534;color:#86efac;border:1px solid #22c55e}
+.toast-err{background:#991b1b;color:#fca5a5;border:1px solid #ef4444}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:550px;width:92%;max-height:80vh;overflow-y:auto}
+.modal h2{margin-bottom:12px;font-size:1.1rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:500px){.form-grid{grid-template-columns:1fr}}
+.tree-node{padding:6px 0 6px 16px;border-left:2px solid var(--border);margin-left:8px}
+.tree-node.n0{border-left-color:var(--rose)}
+.tree-node.n1{border-left-color:var(--accent)}
+.tree-node.n2{border-left-color:var(--green)}
+.tree-label{font-size:0.85rem;cursor:pointer;padding:4px 8px;border-radius:6px;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.tree-label:hover{background:var(--surface2)}
+.tree-label.active{background:rgba(244,63,94,.15);color:var(--rose)}
+.pending-badge{background:var(--yellow);color:#000;padding:1px 6px;border-radius:8px;font-size:0.65rem;font-weight:700;margin-left:4px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🪪 Admin AU</h1>
+  <span class="badge">Autoridades</span>
+  <div class="nav">
+    <a href="/">Home</a>
+    <a href="/au" >Landing</a>
+    <a href="/admin/au" class="active">Admin</a>
+    <a href="/admin/cross">Cross-Chain</a>
+  </div>
+</div>
+
+<div class="container">
+  <div id="toast" class="hidden" style="position:fixed;top:16px;right:16px;z-index:999"></div>
+  <div class="grid2">
+    <!-- Sidebar: Arvore + Lista -->
+    <div>
+      <div class="card">
+        <h2>🌳 Hierarquia</h2>
+        <div id="arvoreView" style="max-height:350px;overflow-y:auto"></div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-rose btn-sm" onclick="openNewAuth()">+ Nova Autoridade</button>
+          <button class="btn btn-sm" style="background:var(--surface2);color:var(--text)" onclick="loadArvore()">🔄</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>⏳ Pendentes</h2>
+        <div id="pendentesView" style="max-height:250px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <!-- Main: Detalhe -->
+    <div>
+      <div id="detailView">
+        <div class="empty"><div class="icon">🪪</div>Selecione uma autoridade na árvore ao lado.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Nova Autoridade</h2>
+    <div id="modalBody"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-rose btn-sm" id="modalSubmit">Registrar</button>
+      <button class="btn btn-red btn-sm" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='';
+let currentUid='';
+let arvoreData=[];
+
+function toast(m,ok=true){const e=document.getElementById('toast');e.textContent=m;e.className='toast-'+(ok?'ok':'err');e.style.display='block';setTimeout(()=>e.style.display='none',3000)}
+async function api(p,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);const r=await fetch(API+p,o);const j=await r.json();if(r.status>=400)throw new Error(j.detail||j.message||'Erro');return j}
+
+// ── Arvore ──────────────────────────────────────────────────────────
+async function loadArvore(){
+  try{
+    const r=await api('/api/au/arvore');
+    arvoreData=r.data||[];
+    renderArvore(arvoreData);
+    loadPendentes();
+  }catch(e){toast(e.message,false)}
+}
+function renderArvore(nodes,depth=0){
+  const el=document.getElementById('arvoreView');
+  if(!depth)el.innerHTML='';
+  if(!nodes||!nodes.length){
+    if(!depth)el.innerHTML='<div class="empty">Nenhuma autoridade encontrada.</div>';
+    return;
+  }
+  nodes.forEach(n=>{
+    const nivelClass='n'+(n.nivel||0);
+    const nivelTag=n.nivel===0?'N0':n.nivel===1?'N1':'N2';
+    const cor=n.nivel===0?'var(--rose)':n.nivel===1?'var(--accent)':'var(--green)';
+    const statusTag=n.revogado?'<span class="tag tag-red">REVOGADA</span>':
+      (n.status==='PENDENTE'?'<span class="pending-badge">PENDENTE</span>':'');
+    const div=document.createElement('div');
+    div.className='tree-node '+nivelClass;
+    div.innerHTML=`<div class="tree-label ${n.id===currentUid?'active':''}" onclick="selectAuth('${n.id}')" style="padding-left:${depth*12}px">
+      <span style="color:${cor};font-weight:700;font-size:0.75rem">${nivelTag}</span>
+      <span>${n.nome||n.id}</span>
+      ${statusTag}
+      ${n.revogado?'':'<span style="color:var(--text2);font-size:0.75rem">'+(n.escopo||'')+' '+(n.uf||'')+(n.cidade?' '+n.cidade:'')+'</span>'}
+    </div>`;
+    el.appendChild(div);
+    if(n.filhos&&n.filhos.length)renderArvore(n.filhos,depth+1);
+  });
+}
+
+// ── Pendentes ───────────────────────────────────────────────────────
+async function loadPendentes(){
+  const el=document.getElementById('pendentesView');
+  try{
+    const r=await api('/api/au/pendentes');
+    const pends=r.data.pendentes||[];
+    if(!pends.length){el.innerHTML='<div class="empty" style="padding:16px">Nenhuma alteração pendente.</div>';return}
+    el.innerHTML=pends.map(p=>`
+      <div class="chain-item" onclick="selectAuth('${p.id}')" style="border-left:3px solid var(--yellow)">
+        <div class="info"><div class="name">${p.estado.nome||p.id}</div><div class="id">${p.id}</div></div>
+        <div><span class="tag tag-yellow">PENDENTE</span></div>
+      </div>
+    `).join('');
+  }catch(e){el.innerHTML='<div style="color:var(--red);font-size:0.8rem;padding:8px">'+e.message+'</div>'}
+}
+
+// ── Select Auth ─────────────────────────────────────────────────────
+async function selectAuth(uid){
+  currentUid=uid;
+  document.querySelectorAll('.tree-label').forEach(e=>e.classList.remove('active'));
+  event&&event.currentTarget&&event.currentTarget.classList.add('active');
+  await loadDetail();
+}
+
+async function loadDetail(){
+  const dv=document.getElementById('detailView');
+  if(!currentUid){dv.innerHTML='<div class="empty"><div class="icon">🪪</div>Selecione uma autoridade.</div>';return}
+  try{
+    const[info,tl,filhos]=await Promise.all([
+      api(`/api/au/${currentUid}`),
+      api(`/api/au/${currentUid}/timeline`),
+      api(`/api/au/${currentUid}/filhos`),
+    ]);
+    const st=info.data.estado||{};
+    const blocos=info.data.blocos||0;
+    const timeline=tl.data||[];
+    const children=filhos.data||[];
+    const nivelTag=st.nivel===0?'N0 — Brasil':st.nivel===1?'N1 — UF':'N2 — Cidade';
+    const cor=st.nivel===0?'var(--rose)':st.nivel===1?'var(--accent)':'var(--green)';
+    const statusTag=st.revogado?'<span class="tag tag-red">REVOGADA</span>':
+      (st.status==='PENDENTE'?'<span class="tag tag-yellow">PENDENTE</span>':
+      (st.status==='CONFIRMADA'?'<span class="tag tag-green">CONFIRMADA</span>':'<span class="tag tag-green">ATIVA</span>'));
+
+    const emojis={NOMEACAO:'🪪',ALTERACAO:'✏️',REVOGACAO:'🚫',CONFIRMACAO:'✅',RECUSA:'❌'};
+
+    dv.innerHTML=`
+      <div class="status-bar">
+        <div class="stat"><span class="stat-label">ID</span><span class="stat-value" style="font-size:0.8rem">${currentUid}</span></div>
+        <div class="stat"><span class="stat-label">Nome</span><span class="stat-value">${st.nome||'-'}</span></div>
+        <div class="stat"><span class="stat-label">Nível</span><span class="stat-value" style="color:${cor}">${nivelTag}</span></div>
+        <div class="stat"><span class="stat-label">Escopo</span><span class="stat-value">${(st.escopo||'').toUpperCase()}</span></div>
+        <div class="stat"><span class="stat-label">Região</span><span class="stat-value">${st.uf||'-'}${st.cidade?' / '+st.cidade:''}</span></div>
+        <div class="stat"><span class="stat-label">Status</span><span class="stat-value">${statusTag}</span></div>
+        <div class="stat"><span class="stat-label">Blocos</span><span class="stat-value">${blocos}</span></div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="showTab('timeline',this)">Timeline</div>
+        <div class="tab" onclick="showTab('acoes',this)">Ações</div>
+        <div class="tab" onclick="showTab('filhos',this)">Filhos (${children.length})</div>
+      </div>
+
+      <div id="ttimeline">
+        <div class="card"><h2>📅 Timeline</h2>
+          ${timeline.length===0?'<div class="empty">Sem eventos</div>':
+            timeline.map(ev=>`
+              <div class="tl-item">
+                <div class="tl-dot" style="background:${ev.tipo==='REVOGACAO'?'var(--red)':ev.tipo==='CONFIRMACAO'?'var(--green)':ev.tipo==='RECUSA'?'var(--orange)':ev.tipo==='ALTERACAO'?'var(--yellow)':'var(--accent)'}"></div>
+                <div style="flex:1">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span>${emojis[ev.tipo]||''} <span class="tag ${ev.tipo==='REVOGACAO'?'tag-red':ev.tipo==='CONFIRMACAO'?'tag-green':ev.tipo==='RECUSA'?'tag-orange':ev.tipo==='ALTERACAO'?'tag-yellow':'tag-blue'}">${ev.tipo}</span></span>
+                    <span style="font-size:0.7rem;color:var(--text2)">${ev.data_registro}</span>
+                  </div>
+                  <div style="font-size:0.75rem;color:var(--text2);margin-top:2px">
+                    Hash: ${ev.hash}... ${ev.assinado?'<span class="tag tag-green">ASS: '+ev.emissor+'</span>':''}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+
+      <div id="tacoes" class="hidden">
+        <div class="card"><h2>⚡ Ações</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px">
+            ${!st.revogado?`
+              <button class="btn btn-primary btn-sm" onclick="openAlterar()">✏️ Alterar Metadados</button>
+              <button class="btn btn-red btn-sm" onclick="openRevogar()">🚫 Revogar</button>
+              ${st.status==='PENDENTE'?`
+                <button class="btn btn-green btn-sm" onclick="openConfirmar()">✅ Confirmar</button>
+                <button class="btn btn-sm" style="background:var(--orange);color:#000" onclick="openRecusar()">❌ Recusar</button>
+              `:''}
+              ${st.nivel<2?`<button class="btn btn-purple btn-sm" onclick="openNomear()">🪪 Nomear Subordinado</button>`:''}
+            `:'<div class="empty">Autoridade revogada — sem ações disponíveis.</div>'}
+          </div>
+        </div>
+      </div>
+
+      <div id="tfilhos" class="hidden">
+        <div class="card"><h2>👪 Filhos Diretos</h2>
+          ${children.length===0?'<div class="empty">Nenhum subordinado direto.</div>':
+            children.map(c=>`
+              <div class="chain-item" onclick="selectAuth('${c.id}')" style="border-left:3px solid ${c.nivel===1?'var(--accent)':'var(--green)'}">
+                <div class="info"><div class="name">${c.nome||c.id}</div><div class="id">${c.id} — ${c.escopo||''} ${c.uf||''}${c.cidade?' '+c.cidade:''}</div></div>
+                <div>${c.revogado?'<span class="tag tag-red">REV.</span>':'<span class="tag tag-green">ATIVA</span>'}</div>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+    `;
+  }catch(e){dv.innerHTML='<div class="empty">Erro: '+e.message+'</div>'}
+}
+
+function showTab(name,el){
+  document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['ttimeline','tacoes','tfilhos'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  const map={timeline:'ttimeline',acoes:'tacoes',filhos:'tfilhos'};
+  document.getElementById(map[name]).classList.remove('hidden');
+}
+
+// ── Modal helpers ───────────────────────────────────────────────────
+function openModal(title,bodyHtml,submitFn){
+  document.getElementById('modalTitle').textContent=title;
+  document.getElementById('modalBody').innerHTML=bodyHtml;
+  document.getElementById('modalSubmit').onclick=submitFn;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('active')}
+const v=id=>document.getElementById(id)?.value||'';
+
+// ── Nova Autoridade ─────────────────────────────────────────────────
+function openNewAuth(){
+  openModal('🪪 Nova Autoridade',`
+    <div class="form-grid">
+      <div><label>Nome</label><input id="aNome" placeholder="Delegacia Regional"></div>
+      <div><label>Nível</label><select id="aNivel"><option value="1">N1 — UF</option><option value="2">N2 — Cidade</option></select></div>
+      <div><label>Escopo</label><select id="aEscopo"><option value="pf">PF</option><option value="im">IM</option><option value="mo">MO</option><option value="co">CO</option><option value="em">EM</option><option value="ac">AC</option><option value="an">AN</option></select></div>
+      <div><label>UF</label><input id="aUf" placeholder="SP" maxlength="2"></div>
+      <div><label>Cidade (N2)</label><input id="aCidade" placeholder="São Paulo"></div>
+      <div><label>Senha (opcional)</label><input id="aSenha" placeholder="Gerada se vazia"></div>
+      <div><label>Motivo</label><input id="aMotivo" placeholder="Nomeação oficial"></div>
+    </div>
+  `,submitNewAuth);
+}
+async function submitNewAuth(){
+  try{
+    await api('/api/au','POST',{nome:v('aNome'),nivel:parseInt(v('aNivel')),escopo:v('aEscopo'),uf:v('aUf'),cidade:v('aCidade'),senha:v('aSenha'),motivo:v('aMotivo')});
+    toast('Autoridade criada!');closeModal();loadArvore();
+  }catch(e){toast(e.message,false)}
+}
+
+// ── Alterar ─────────────────────────────────────────────────────────
+function openAlterar(){
+  openModal('✏️ Alterar Metadados',`
+    <div class="form-grid">
+      <div><label>Novo Nome</label><input id="aNNome" placeholder=""></div>
+      <div><label>Novo Escopo</label><select id="aNEscopo"><option value="">Manter</option><option value="pf">PF</option><option value="im">IM</option><option value="mo">MO</option><option value="co">CO</option><option value="em">EM</option><option value="ac">AC</option><option value="an">AN</option></select></div>
+      <div><label>Nova UF</label><input id="aNUf" placeholder="" maxlength="2"></div>
+      <div><label>Nova Cidade</label><input id="aNCidade" placeholder=""></div>
+      <div><label>Motivo</label><input id="aNMotivo" placeholder="Alteração de cadastro"></div>
+    </div>
+  `,submitAlterar);
+}
+async function submitAlterar(){
+  try{
+    const body={};
+    if(v('aNNome'))body.nome=v('aNNome');
+    if(v('aNEscopo'))body.escopo=v('aNEscopo');
+    if(v('aNUf'))body.uf=v('aNUf');
+    if(v('aNCidade'))body.cidade=v('aNCidade');
+    if(v('aNMotivo'))body.motivo=v('aNMotivo');
+    await api(`/api/au/${currentUid}/alterar`,'POST',body);
+    toast('Alteração registrada (PENDENTE).');closeModal();loadDetail();loadPendentes();
+  }catch(e){toast(e.message,false)}
+}
+
+// ── Revogar ─────────────────────────────────────────────────────────
+function openRevogar(){
+  if(!confirm('Revogar esta autoridade? Esta ação é irreversível.'))return;
+  openModal('🚫 Revogar Autoridade',`
+    <div><label>Motivo</label><input id="aRMotivo" placeholder="Motivo da revogação"></div>
+  `,submitRevogar);
+}
+async function submitRevogar(){
+  try{
+    await api(`/api/au/${currentUid}/revogar`,'POST',{motivo:v('aRMotivo')||'Revogada pela autoridade superior.'});
+    toast('Autoridade revogada.');closeModal();loadDetail();loadArvore();
+  }catch(e){toast(e.message,false)}
+}
+
+// ── Confirmar ───────────────────────────────────────────────────────
+function openConfirmar(){
+  openModal('✅ Confirmar Alteração',`
+    <p style="color:var(--text2);margin-bottom:12px">Confirmar a alteração pendente de <strong>${currentUid}</strong>?</p>
+    <div><label>Motivo (opcional)</label><input id="aCMotivo" placeholder=""></div>
+  `,submitConfirmar);
+}
+async function submitConfirmar(){
+  try{
+    await api(`/api/au/${currentUid}/confirmar`,'POST',{motivo:v('aCMotivo')});
+    toast('Alteração confirmada!');closeModal();loadDetail();loadPendentes();loadArvore();
+  }catch(e){toast(e.message,false)}
+}
+
+// ── Recusar ─────────────────────────────────────────────────────────
+function openRecusar(){
+  openModal('❌ Recusar Alteração',`
+    <p style="color:var(--text2);margin-bottom:12px">Recusar a alteração pendente de <strong>${currentUid}</strong>?</p>
+    <div><label>Motivo (opcional)</label><input id="aXMotivo" placeholder=""></div>
+  `,submitRecusar);
+}
+async function submitRecusar(){
+  try{
+    await api(`/api/au/${currentUid}/recusar`,'POST',{motivo:v('aXMotivo')});
+    toast('Alteração recusada.');closeModal();loadDetail();loadPendentes();loadArvore();
+  }catch(e){toast(e.message,false)}
+}
+
+// ── Nomear Subordinado ──────────────────────────────────────────────
+function openNomear(){
+  openModal('🪪 Nomear Subordinado',`
+    <div class="form-grid">
+      <div><label>Nome</label><input id="aN2Nome" placeholder="Delegacia"></div>
+      <div><label>Nível</label><select id="aN2Nivel"><option value="2">N2 — Cidade</option></select></div>
+      <div><label>Escopo</label><select id="aN2Escopo"><option value="pf">PF</option><option value="im">IM</option><option value="mo">MO</option><option value="co">CO</option><option value="em">EM</option><option value="ac">AC</option><option value="an">AN</option></select></div>
+      <div><label>UF</label><input id="aN2Uf" placeholder="SP" maxlength="2"></div>
+      <div><label>Cidade</label><input id="aN2Cidade" placeholder="São Paulo"></div>
+      <div><label>Motivo</label><input id="aN2Motivo" placeholder="Nomeação"></div>
+    </div>
+  `,submitNomear);
+}
+async function submitNomear(){
+  try{
+    await api('/api/au','POST',{nome:v('aN2Nome'),nivel:parseInt(v('aN2Nivel')),escopo:v('aN2Escopo'),uf:v('aN2Uf'),cidade:v('aN2Cidade'),motivo:v('aN2Motivo')});
+    toast('Subordinado nomeado!');closeModal();loadArvore();
+  }catch(e){toast(e.message,false)}
+}
+
+// ── Init ────────────────────────────────────────────────────────────
+loadArvore();
+</script>
+</body>
+</html>
