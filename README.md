@@ -558,5 +558,8 @@ python -m pytest tests/ -v
 ```
 
 ## Licenca
+Este projeto é desenvolvido para fins de pesquisa e desenvolvimento de linguagens de programação. Consulte a documentação em docs/ para obter detalhes completos da especificação e licença.
 
-MIT
+           GNU GENERAL PUBLIC LICENSE
+
+Version 3, 29 June 2007 Copyright (C) 2007 Free Software
