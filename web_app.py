@@ -2265,6 +2265,121 @@ def get_pf_graph():
     return ok(pf_graph.to_dict())
 
 
+# ── F7: Rebuild do grafo a partir das cadeias ────────────────────────
+
+# Alias de tipo de evento PF → tipo de aresta do grafo
+_F7_EDGE_TYPES = {
+    "MAE": RelationType.MAE,
+    "PAI": RelationType.PAI,
+    "CONJUGE": RelationType.CONJUGE,
+    "EX_CONJUGE": RelationType.EX_CONJUGE,
+}
+
+
+def _rebuild_graph_from_chains() -> dict:
+    """Reconstroi o grafo de relacionamentos a partir das cadeias PF.
+
+    Varre os blocos de todas as cadeias (genesis + eventos) e reaplica
+    as mesmas regras de _update_graph_on_event/create_genesis:
+      - NASCIMENTO: no da PF + arestas MAE/PAI (se cpf_mae/cpf_pai)
+      - CASAMENTO: aresta CONJUGE
+      - DIVORCIO: desativa arestas CONJUGE ativas + aresta EX_CONJUGE
+      - OBITO: marca no como falecido
+    Retorna estatisticas do rebuild.
+    """
+    nos_antes = len(pf_graph.nodes)
+    arestas_antes = len(pf_graph.edges)
+
+    # Preserva chain_index (nao faz parte dos eventos)
+    chain_index_antes = {
+        cpf: n.chain_index for cpf, n in pf_graph.nodes.items()
+    }
+    pf_graph.nodes.clear()
+    pf_graph.edges.clear()
+    pf_graph._edge_index.clear()
+
+    eventos_aplicados = 0
+    for cpf_cadeia, chain in chains.items():
+        for bloco in chain.chain:
+            evento = bloco.data.get("evento_tipo", "")
+            payload = bloco.data.get("payload", {}) or {}
+            idx = bloco.index
+
+            if evento == "NASCIMENTO":
+                cpf = payload.get("cpf", "") or cpf_cadeia
+                pf_graph.add_node(cpf, payload.get("nome_completo", ""),
+                                  chain_index=chain_index_antes.get(cpf))
+                mae = payload.get("nome_mae", "")
+                cpf_mae = payload.get("cpf_mae", "")
+                if mae and cpf_mae:
+                    pf_graph.add_node(cpf_mae, mae)
+                    pf_graph.add_edge(cpf_mae, cpf, RelationType.MAE, idx)
+                pai = payload.get("nome_pai", "")
+                cpf_pai = payload.get("cpf_pai", "")
+                if pai and cpf_pai:
+                    pf_graph.add_node(cpf_pai, pai)
+                    pf_graph.add_edge(cpf_pai, cpf, RelationType.PAI, idx)
+                eventos_aplicados += 1
+
+            elif evento == "CASAMENTO":
+                cpf_conjuge = payload.get("cpf_conjuge", "")
+                if cpf_conjuge:
+                    pf_graph.add_node(cpf_conjuge, payload.get("nome_conjuge", ""))
+                    pf_graph.add_edge(
+                        cpf_cadeia, cpf_conjuge, RelationType.CONJUGE, idx,
+                        dados={"regime_bens": payload.get("regime_bens", "")},
+                    )
+                    eventos_aplicados += 1
+
+            elif evento == "DIVORCIO":
+                conjuges = [
+                    n for n in (
+                        pf_graph.nodes.get(e.to_cpf)
+                        for e in pf_graph._get_active_edges(cpf_cadeia)
+                        if e.tipo == RelationType.CONJUGE
+                        and e.from_cpf == cpf_cadeia
+                    ) if n
+                ]
+                for c in conjuges:
+                    pf_graph.deactivate_edges(cpf_cadeia, c.cpf, RelationType.CONJUGE)
+                    pf_graph.add_edge(
+                        cpf_cadeia, c.cpf, RelationType.EX_CONJUGE, idx,
+                        dados={"tipo": payload.get("tipo", "")},
+                    )
+                eventos_aplicados += 1
+
+            elif evento == "OBITO":
+                # O payload de OBITO tem o cpf do falecido; se ausente,
+                # assume a PF da cadeia.
+                cpf_obito = payload.get("cpf", "") or cpf_cadeia
+                if cpf_obito in pf_graph.nodes:
+                    pf_graph.mark_deceased(cpf_obito)
+                    eventos_aplicados += 1
+
+    stats = pf_graph.stats()
+    return {
+        "cadeias_varridas": len(chains),
+        "eventos_aplicados": eventos_aplicados,
+        "nos_antes": nos_antes,
+        "arestas_antes": arestas_antes,
+        **stats,
+    }
+
+
+@app.post("/api/pf/graph/rebuild")
+def rebuild_pf_graph(user: dict = Depends(require_admin)):
+    """F7: reconstrói o grafo de relacionamentos a partir das cadeias PF.
+
+    Limpa nos/arestas em memoria e reaplica os eventos graficos
+    (NASCIMENTO/CASAMENTO/DIVORCIO/OBITO) na ordem dos blocos. O grafo
+    reconstruido é re-persistido no SQLite.
+    """
+    with chains_lock:
+        resultado = _rebuild_graph_from_chains()
+    _save_graph()
+    return ok(resultado, "Grafo reconstruido a partir das cadeias PF.")
+
+
 # ── Rotas: Autoridade (AU) ─────────────────────────────────────────────
 # Hierarquia de emissores: N0 (Brasil) → N1 (UF) → N2 (cidade).
 # Revogacao no livro-razao AU bloqueia a conta (sem delete fisico).
