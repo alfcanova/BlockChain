@@ -1062,6 +1062,7 @@ def delete_chain(cpf: str, user: dict = Depends(require_admin)):
     cpf_clean = cpf.replace(".", "").replace("-", "").replace("/", "")
     if cpf_clean not in chains:
         raise HTTPException(status_code=404, detail="Cadeia nao encontrada.")
+    _desativa_vinculos_da_entidade("pf", cpf_clean)
     with chains_lock:
         del chains[cpf_clean]
     db.delete_chain(cpf_clean)
@@ -1727,6 +1728,7 @@ def add_heranca(matricula: str, req: HerancaRequest, user: dict = Depends(requir
 def delete_imovel(matricula: str, user: dict = Depends(require_admin)):
     if matricula not in im_chains:
         raise HTTPException(status_code=404, detail="Imóvel não encontrado.")
+    _desativa_vinculos_da_entidade("im", matricula)
     with chains_lock:
         del im_chains[matricula]
     db.delete_imovel(matricula)
@@ -1748,6 +1750,71 @@ def _persist_domain(domain: str, cid: str, chain) -> None:
         return
     last = chain.chain[-1]
     db.save_block_incremental(domain, cid, chain.difficulty, last.to_dict())
+
+
+# ── F6: Integridade cross-chain ──────────────────────────────────────
+
+# Campos de referencia por dominio: (campo_id_origem, campo_id_destino).
+# Ex.: VehicleCrossReference.entidade_origem_tipo/entidade_origem_id.
+_REF_KEYS = {
+    "im": ("cpf", "matricula"),
+    "mo": ("entidade_origem_id", "entidade_destino_id"),
+    "co": ("entidade_origem_id", "entidade_destino_id"),
+    "em": ("entidade_origem_id", "entidade_destino_id"),
+    "ac": ("entidade_origem_id", "entidade_destino_id"),
+    "an": ("entidade_origem_id", "entidade_destino_id"),
+}
+
+
+def _desativa_vinculos_da_entidade(domain: str, cid: str) -> int:
+    """F6: desativa vinculos cross-chain ativos envolvendo a entidade.
+
+    Chamado nas rotas de delete (antes de remover a cadeia): evita
+    referencias orfas — um vinculo ativo apontando para entidade que
+    nao existe mais. Retorna a quantidade desativada.
+    """
+    def _norm_id(s: str) -> str:
+        """Normaliza id para comparacao (pontos/tracos/espacos/case)."""
+        return re.sub(r"[\s.\-]", "", str(s)).upper()
+
+    cid_norm = _norm_id(cid)
+    desativados = 0
+    for dom, manager, _ref_cls in _CROSS_MANAGERS:
+        if not hasattr(manager, "deactivate_reference"):
+            continue
+        k_origem, k_destino = _REF_KEYS.get(
+            dom, ("entidade_origem_id", "entidade_destino_id"))
+        for ref in list(getattr(manager, "_references", [])):
+            d = ref.to_dict() if hasattr(ref, "to_dict") else dict(ref)
+            if not d.get("ativo", True):
+                continue
+            o_tipo = str(d.get("entidade_origem_tipo", d.get("origem_tipo", "")))
+            d_tipo = str(d.get("entidade_destino_tipo", d.get("destino_tipo", "")))
+            o_id = str(d.get(k_origem, ""))
+            d_id = str(d.get(k_destino, ""))
+
+            if dom == "im":
+                # Ref legada IM: dict tem 'cpf' e 'matricula' (sem tipos)
+                o_tipo, d_tipo = "PF", "IM"
+                o_id = str(d.get("cpf", ""))
+                d_id = str(d.get("matricula", ""))
+
+            # A entidade removida pode estar na origem OU no destino da ref;
+            # a chamada mantem a orientacao armazenada (deactivate compara
+            # os quatro campos na direcao gravada).
+            origem_envolve = o_tipo.lower() == domain and _norm_id(o_id) == cid_norm
+            destino_envolve = d_tipo.lower() == domain and _norm_id(d_id) == cid_norm
+            if not (origem_envolve or destino_envolve):
+                continue
+
+            if dom == "im":
+                count = manager.deactivate_reference(cpf=o_id, matricula=d_id)
+            else:
+                count = manager.deactivate_reference(
+                    origem_tipo=o_tipo, origem_id=o_id,
+                    destino_tipo=d_tipo, destino_id=d_id)
+            desativados += int(count)
+    return desativados
 
 
 def _persist_imovel(matricula: str) -> None:
@@ -1860,6 +1927,7 @@ def delete_veiculo(placa: str, user: dict = Depends(require_admin)):
     placa = placa.upper()
     if placa not in mo_chains:
         raise HTTPException(status_code=404, detail="Veiculo nao encontrado.")
+    _desativa_vinculos_da_entidade("mo", placa)
     with chains_lock:
         del mo_chains[placa]
     db.delete_veiculo(placa)
@@ -1942,6 +2010,7 @@ def delete_empresa(cnpj: str, user: dict = Depends(require_admin)):
     cnpj_clean = re.sub(r"\D", "", cnpj)
     if cnpj_clean not in co_chains:
         raise HTTPException(status_code=404, detail="Empresa nao encontrada.")
+    _desativa_vinculos_da_entidade("co", cnpj_clean)
     with chains_lock:
         del co_chains[cnpj_clean]
     db.delete_domain_chain("co", cnpj_clean)
@@ -2019,6 +2088,7 @@ def add_embarcacao_event(registro: str, req: DomainEventRequest, user: dict = De
 def delete_embarcacao(registro: str, user: dict = Depends(require_admin)):
     if registro not in em_chains:
         raise HTTPException(status_code=404, detail="Embarcacao nao encontrada.")
+    _desativa_vinculos_da_entidade("em", registro)
     with chains_lock:
         del em_chains[registro]
     db.delete_domain_chain("em", registro)
@@ -2101,6 +2171,7 @@ def delete_aeronave(matricula: str, user: dict = Depends(require_admin)):
     matricula = matricula.upper()
     if matricula not in ac_chains:
         raise HTTPException(status_code=404, detail="Aeronave nao encontrada.")
+    _desativa_vinculos_da_entidade("ac", matricula)
     with chains_lock:
         del ac_chains[matricula]
     db.delete_domain_chain("ac", matricula)
@@ -2179,6 +2250,7 @@ def add_animal_event(animal_id: str, req: DomainEventRequest, user: dict = Depen
 def delete_animal(animal_id: str, user: dict = Depends(require_admin)):
     if animal_id not in an_chains:
         raise HTTPException(status_code=404, detail="Animal nao encontrado.")
+    _desativa_vinculos_da_entidade("an", animal_id)
     with chains_lock:
         del an_chains[animal_id]
     db.delete_domain_chain("an", animal_id)
@@ -2822,6 +2894,166 @@ def create_vinculo(req: CrossVinculoRequest, user: dict = Depends(require_write_
     """Cria um vinculo cross-chain."""
     ref = cross_mo.create_reference(**req.model_dump())
     return ok(ref.to_dict(), "Vinculo criado.")
+
+
+@app.get("/api/cross/orfaos")
+def listar_vinculos_orfaos(user: dict = Depends(require_admin)):
+    """F6: vinculos ativos apontando para entidades inexistentes (orfos)."""
+    stores = {"pf": chains, "im": im_chains, "mo": mo_chains, "co": co_chains,
+              "em": em_chains, "ac": ac_chains, "an": an_chains}
+    orfaos = []
+    for dom, manager, _ref_cls in _CROSS_MANAGERS:
+        k_origem, k_destino = _REF_KEYS.get(
+            dom, ("entidade_origem_id", "entidade_destino_id"))
+        for ref in getattr(manager, "_references", []):
+            d = ref.to_dict() if hasattr(ref, "to_dict") else dict(ref)
+            if not d.get("ativo", True):
+                continue
+            o_tipo = str(d.get("entidade_origem_tipo", d.get("origem_tipo", ""))).lower()
+            d_tipo = str(d.get("entidade_destino_tipo", d.get("destino_tipo", ""))).lower()
+            o_id = str(d.get(k_origem, ""))
+            d_id = str(d.get(k_destino, ""))
+            lo, ld = stores.get(o_tipo), stores.get(d_tipo)
+            if lo is not None and o_id and o_id not in lo:
+                orfaos.append({"domain": dom, "lado": "origem", "tipo": o_tipo,
+                               "id": o_id, "tipo_vinculo": d.get("tipo_vinculo", "")})
+            if ld is not None and d_id and d_id not in ld:
+                orfaos.append({"domain": dom, "lado": "destino", "tipo": d_tipo,
+                               "id": d_id, "tipo_vinculo": d.get("tipo_vinculo", "")})
+    return ok({"total": len(orfaos), "orfaos": orfaos})
+
+
+# ── F12: Backup/restore (bundle JSON) ──────────────────────────────────
+
+def _montar_bundle() -> dict:
+    """Monta o bundle de backup: cadeias + grafo + cross-references.
+
+    As cadeias sao serializadas no mesmo formato do snapshot legado
+    ({"difficulty": n, "chain": [bloco_dict]}), restauravel via
+    _rebuild_chain. Autoridades (AU) incluidas.
+    """
+    cadeias: dict[str, dict] = {}
+    counts: dict[str, int] = {}
+    for domain, store, _cls, _label in _CHAIN_SPECS:
+        cadeias[domain] = {
+            cid: _chain_payload(chain) for cid, chain in store.items()
+        }
+        counts[domain] = len(cadeias[domain])
+    return {
+        "meta": {
+            "versao": 1,
+            "gerado_em": time.time(),
+            "app": "Blockchain Brasil v4.0",
+            "counts": counts,
+        },
+        "chains": cadeias,
+        "graph": pf_graph.to_dict(),
+        "cross_references": {
+            dom: [r.to_dict() for r in getattr(mgr, "_references", [])]
+            for dom, mgr, _ref_cls in _CROSS_MANAGERS
+        },
+    }
+
+
+@app.get("/api/admin/backup")
+def exportar_backup(user: dict = Depends(require_admin)):
+    """F12: exporta cadeias + grafo + cross-references (download JSON).
+
+    Retorna o bundle puro (sem envelope ok()) para o arquivo servir
+    direto como entrada do /api/admin/restore.
+    """
+    bundle = _montar_bundle()
+    stamp = time.strftime("%Y%m%d_%H%M%S")
+    return JSONResponse(
+        content=bundle,
+        media_type="application/json",
+        headers={
+            "Content-Disposition":
+                f'attachment; filename="blockchain_backup_{stamp}.json"',
+        },
+    )
+
+
+@app.post("/api/admin/restore")
+def restaurar_backup(bundle: dict, user: dict = Depends(require_admin)):
+    """F12: importa bundle gerado pelo backup (upsert por id).
+
+    Cadeias presentes no bundle substituem as de mesmo id (e deixam as
+    demais intactas); grafo e cross-references sao recarregados das
+    listas do bundle e re-persistidos.
+    """
+    if not isinstance(bundle, dict) or "meta" not in bundle or "chains" not in bundle:
+        raise HTTPException(
+            status_code=400,
+            detail="Bundle invalido: 'meta' e 'chains' sao obrigatorios.")
+    chains_b = bundle.get("chains") or {}
+    if not isinstance(chains_b, dict):
+        raise HTTPException(status_code=400, detail="Bundle invalido: 'chains' deve ser um objeto.")
+
+    restauradas: dict[str, int] = {}
+    with chains_lock:
+        for domain, store, cls, label in _CHAIN_SPECS:
+            dominio_b = chains_b.get(domain) or {}
+            if not isinstance(dominio_b, dict):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Bundle invalido: chains.{domain} deve ser um objeto.")
+            n = 0
+            for cid, data in dominio_b.items():
+                if not isinstance(data, dict) or not isinstance(data.get("chain"), list):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Bundle invalido: chains.{domain}.{cid}")
+                difficulty = int(data.get("difficulty", 2))
+                # Persiste: limpa estado anterior do id e grava snapshot
+                # completo + blocos incrementais (mesmo caminho de leitura
+                # do startup).
+                db.delete_domain_chain(domain, cid)
+                db.save_domain_chain(domain, cid, difficulty, data)
+                for b in data["chain"]:
+                    db.save_block_incremental(domain, cid, difficulty, b)
+                store[cid] = _rebuild_chain(cls, data, label,
+                                            domain=domain, cid=cid)
+                n += 1
+            if n:
+                restauradas[domain] = n
+
+    # Grafo de relacionamentos PF
+    graph_b = bundle.get("graph") or {}
+    if graph_b:
+        pf_graph.nodes.clear()
+        pf_graph.edges.clear()
+        pf_graph._edge_index.clear()
+        for cpf, n in (graph_b.get("nodes") or {}).items():
+            pf_graph.nodes[cpf] = Node(**n)
+        for e in graph_b.get("edges") or []:
+            edge = Edge(
+                from_cpf=e["from_cpf"], to_cpf=e["to_cpf"], tipo=e["tipo"],
+                ativo=e.get("ativo", True), block_index=e.get("block_index"),
+                timestamp=e.get("timestamp", 0.0), dados=e.get("dados") or {},
+            )
+            pf_graph.edges.append(edge)
+            idx = len(pf_graph.edges) - 1
+            pf_graph._edge_index.setdefault(edge.from_cpf, []).append(idx)
+            pf_graph._edge_index.setdefault(edge.to_cpf, []).append(idx)
+        _save_graph()
+
+    # Cross-references
+    refs_b = bundle.get("cross_references") or {}
+    for dom, mgr, ref_cls in _CROSS_MANAGERS:
+        lista = refs_b.get(dom)
+        if lista is None:
+            continue
+        mgr._references = [ref_cls(**d) for d in lista]
+    _save_cross_references()
+
+    return ok({
+        "versao_bundle": bundle["meta"].get("versao", 0),
+        "gerado_em": bundle["meta"].get("gerado_em", 0),
+        "cadeias_restauradas": restauradas,
+        "grafo": bool(graph_b),
+        "cross_domains": sorted(refs_b.keys()),
+    }, "Backup restaurado.")
 
 
 class CrossVinculoDeleteRequest(BaseModel):

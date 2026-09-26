@@ -3,8 +3,9 @@
 > Ordem de execucao com dependencias. Cada fase so comeca quando a anterior estiver 100%.
 >
 > **Status (2026-09-26):** Fases 1 a 5, P1-P3, R1/N2 (auditoria dos
-> admins, bugs N3-N6) e P5-P7 (rate limiting, refresh tokens, senha
-> forte) executados e validados (1152 testes).
+> admins, bugs N3-N6), P5-P7 (rate limiting, refresh tokens, senha
+> forte) e F6/F12 (integridade cross-chain, backup) executados e
+> validados (1166 testes).
 > Este arquivo mantem apenas o que resta; o conteudo executado foi removido
 > e o historico esta em `git log`.
 
@@ -25,8 +26,7 @@ atualizar os imports junto.
 
 ## PENDENTE: features (resumo)
 
-F1 Docker/compose · F6 integridade cross-chain (orfos) ·
-F7 graph rebuild · F12 export/import bundle.
+F1 Docker/compose · F7 graph rebuild.
 
 Detalhes de cada feature no `docs/TODO.md`.
 
@@ -49,10 +49,10 @@ P4 (L2 routers)
    ↓
 T1 → T2 → T3 (testes residuais)
    ↓
-Features F1/F6/F7/F12 (backlog, sem ordem obrigatoria)
+Features F1/F7 (backlog, sem ordem obrigatoria)
    ↓
 pytest → commit → push
 ```
 
-**Suite atual:** 1152 passed | Cobertura: 75% | Principais gaps:
+**Suite atual:** 1166 passed | Cobertura: 75% | Principais gaps:
 `blockchain_co/chain.py` (60%), `web_app.py` (56%).
