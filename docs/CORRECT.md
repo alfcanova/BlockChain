@@ -2,40 +2,35 @@
 
 > Ordem de execucao com dependencias. Cada fase so comeca quando a anterior estiver 100%.
 >
-> **Status (2026-09-26):** Fases 1 a 5 executadas e validadas (1126 testes).
+> **Status (2026-09-26):** Fases 1 a 5 e P1-P3 executados e validados (1126 testes).
 > Este arquivo mantem apenas o que resta; o conteudo executado foi removido
-> e o historico esta em `git log` (commits `c872d5b`, `d2e7e46` e seguintes).
+> e o historico esta em `git log`.
 
 ---
 
-## PENDENTE: itens fora do plano original
+## RESOLVIDO NESTA RODADA (P1-P3)
 
-Estes itens existiam no TODO.md original mas nao tinham entrada no plano;
-continuam em aberto:
+- **P1/M2** — Persistencia incremental: tabela `blocks` (domain, id,
+  block_index, block_json) + `save_block_incremental()`; escrita O(1)
+  por evento via `_persist_domain()`.
+- **P2/M3** — `chains_lock` (threading.Lock) protegendo as 14 mutacoes
+  dos dicts globais em `web_app.py`.
+- **P3/M5** — Helper unico `_persist_domain(domain, cid, chain)`;
+  `_persist_chain/_persist_imovel/_persist_veiculo/_persist_autoridade/
+  _save_chain_to_db` viraram delegados de uma linha.
 
-### P1. Serializacao O(n) a cada evento (M2)
-**Arquivos:** `web_app.py` (`_save_chain_to_db` / `_persist_*`)
-**Mudanca:** Persistencia incremental — salvar apenas o bloco novo (tabela
-`blocks` por cadeia) em vez de serializar a cadeia inteira a cada evento.
+---
 
-### P2. Locks nos dicts globais (M3)
-**Arquivo:** `web_app.py`
-**Mudanca:** `chains`, `im_chains`, `mo_chains`, `co_chains`, `em_chains`,
-`ac_chains`, `an_chains` e cross-managers sao mutados por rotas FastAPI
-(threads do event loop) sem lock — usar `threading.Lock()` por dict ou um
-`RWLock` unico, cobrindo create/delete e os loops de listagem.
-
-### P3. Unificar padroes de persistencia (M5)
-**Arquivo:** `web_app.py`
-**Mudanca:** Hoje coexistem 5 helpers (`_persist_chain`, `_persist_imovel`,
-`_persist_veiculo`, `_persist_autoridade`, `_save_chain_to_db`). Extrair um
-unico `persist(domain, cid, chain)` e migrar as chamadas.
+## PENDENTE: arquitetura
 
 ### P4. Extrair routers do monolito (L2)
-**Arquivo:** `web_app.py`
+**Arquivo:** `web_app.py` (~2.900 linhas, 136 rotas)
 **Mudanca:** Separar em `routers/pf.py`, `routers/im.py`, `routers/mo.py`,
 `routers/co.py`, `routers/em.py`, `routers/ac.py`, `routers/an.py`,
 `routers/au.py`, `routers/auth.py` + `static/` para os HTMLs.
+**Atencao:** `tests/test_api.py` e `test_fixes.py` importam `chains` e os
+dicts de dominio diretamente de `web_app` — manter re-exports la ou
+atualizar os imports junto.
 
 ---
 
@@ -67,29 +62,40 @@ Detalhes de cada feature no `docs/TODO.md`.
 
 ---
 
+## RESOLVIDO: revisao de contratos dos admins (R1/N2)
+
+Auditoria executada em 2026-09-26 contra servidor real (script
+`makedemos/audit_n2.py`): payloads EXATOS dos `admin_*.html` testados
+contra os contratos das APIs. Resultado: EM 9/9 · AC 9/9 · AN 9/9 ·
+MO 13/13 · CO 10/10 · IM 8/8 · AU 7/7. Bugs descobertos e corrigidos
+no caminho: N3 (MO credor dict), N4 (seed N0), N5 (restore M2),
+N6 (rotas AU alterar/confirmar/recusar) — detalhes no `docs/TODO.md`.
+
+---
+
 ## PENDENTE: testes residuais
 
 | Item | Alcance |
 |------|---------|
 | T1. API de MO e PF generica | As rotas `/api/mo/*` e PF estao cobertas via `test_fixes.py`; consolidar em `test_api.py` |
-| T2. Concurrencia real | Teste com `ThreadPoolExecutor` disparando `add_event` paralelos nas 6 chains (valida C6 em escala) |
-| T3. Restart real da app | Subir `TestClient` duas vezes (dois `lifespan`) e verificar recarga de cadeias do SQLite |
+| T2. Concurrencia real | Teste com `ThreadPoolExecutor` disparando `add_event` paralelos nas 6 chains (valida C6/M3 em escala) |
+| T3. Restart real da app | ~~Validar recarga pela tabela `blocks`~~ **Feito em 2026-09-26** (N5): restore com merge blocks+chains validado em restart real com 300+ chains. Falta apenas o teste automatizado com dois `lifespan` |
 
 ---
 
 ## Ordem de Execucao Restante
 
 ```
-P2 (M3 locks) → P3 (M5 persist) → P1 (M2 incremental) → P4 (L2 routers)
+P4 (L2 routers)
    ↓
 P5 → P6 → P7 (seguranca de auth)
    ↓
-T1 → T2 → T3 (testes residuais)
+R1 (revisar admins) · T1 → T2 → T3 (testes residuais)
    ↓
 Features F1/F6-F12 (backlog, sem ordem obrigatoria)
    ↓
 pytest → commit → push
 ```
 
-**Suite atual:** 1126 passed | Cobertura: 75% | Principais gaps:
+**Suite atual:** 1127 passed | Cobertura: 75% | Principais gaps:
 `blockchain_co/chain.py` (60%), `web_app.py` (56%).

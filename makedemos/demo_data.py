@@ -18,7 +18,7 @@ import io
 import time
 from typing import Any
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # raiz do projeto (scripts em makedemos/)
 
 from blockchain_pf import Blockchain, EventFactory, EventType, generate_authority_keypair
 from blockchain_im import PropertyChain, PropertyEventFactory, PropertyEventType

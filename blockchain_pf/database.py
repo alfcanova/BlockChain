@@ -133,6 +133,14 @@ class Database:
                     created_at REAL NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS blocks (
+                    domain TEXT NOT NULL,
+                    id TEXT NOT NULL,
+                    block_index INTEGER NOT NULL,
+                    block_json TEXT NOT NULL,
+                    PRIMARY KEY (domain, id, block_index)
+                );
+
                 CREATE TABLE IF NOT EXISTS graph_nodes (
                     cpf TEXT PRIMARY KEY,
                     nome TEXT NOT NULL,
@@ -266,12 +274,61 @@ class Database:
         return {row["id"]: json.loads(row["data"]) for row in rows}
 
     def delete_domain_chain(self, domain: str, cid: str) -> bool:
-        """Remove uma cadeia de um dominio."""
+        """Remove uma cadeia de um dominio (e seus blocos incrementais)."""
         with self._transaction() as conn:
+            conn.execute(
+                "DELETE FROM blocks WHERE domain = ? AND id = ?", (domain, cid)
+            )
             cursor = conn.execute(
                 "DELETE FROM chains WHERE domain = ? AND id = ?", (domain, cid)
             )
             return cursor.rowcount > 0
+
+    # ── Persistencia incremental por bloco (M2) ────────────────────────
+
+    def save_block_incremental(
+        self, domain: str, cid: str, difficulty: int, block_dict: dict
+    ) -> None:
+        """Grava apenas o bloco novo (O(1)) e atualiza a cadeia-pai.
+
+    O snapshot consolidado em `chains` e mantido em dia para que o
+    caminho de leitura (load_*) nao mude; a escrita deixa de ser O(n).
+        """
+        now = time.time()
+        idx = int(block_dict.get("index", 0))
+        block_json = json.dumps(block_dict, default=str)
+        with self._transaction() as conn:
+            conn.execute("""
+                INSERT INTO blocks (domain, id, block_index, block_json)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(domain, id, block_index) DO UPDATE SET
+                    block_json=excluded.block_json
+            """, (domain, cid, idx, block_json))
+            conn.execute("""
+                INSERT INTO chains (domain, id, difficulty, data, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(domain, id) DO UPDATE SET
+                    difficulty=excluded.difficulty,
+                    updated_at=excluded.updated_at
+            """, (domain, cid, difficulty, json.dumps({"difficulty": difficulty}), now, now))
+
+    def load_blocks(self, domain: str, cid: str) -> list[dict]:
+        """Blocos de uma cadeia em ordem de indice (para reconstrucao)."""
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT block_json FROM blocks "
+            "WHERE domain = ? AND id = ? ORDER BY block_index ASC",
+            (domain, cid),
+        ).fetchall()
+        return [json.loads(r["block_json"]) for r in rows]
+
+    def count_blocks(self, domain: str, cid: str) -> int:
+        conn = self._get_conn()
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM blocks WHERE domain = ? AND id = ?",
+            (domain, cid),
+        ).fetchone()
+        return int(row["n"]) if row else 0
 
     def domain_chain_exists(self, domain: str, cid: str) -> bool:
         """Verifica se uma cadeia existe."""

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockchain Brasil — Registro Imutável</title>
+<style>
+  :root { --bg:#0b1220; --card:#121c33; --line:#22304f; --txt:#e8eefc; --mut:#93a4c6; --acc:#4f8cff; }
+  * { margin:0; padding:0; box-sizing:border-box; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  body { background:var(--bg); color:var(--txt); min-height:100vh; padding:40px 20px; }
+  .wrap { max-width:1080px; margin:0 auto; }
+  h1 { font-size:1.9rem; letter-spacing:-.5px; }
+  h1 span { color:var(--acc); }
+  p.sub { color:var(--mut); margin:10px 0 34px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; display:flex; flex-direction:column; gap:8px; transition:transform .15s,border-color .15s; }
+  .card:hover { transform:translateY(-3px); border-color:var(--acc); }
+  .card h2 { font-size:1.05rem; display:flex; align-items:center; gap:8px; }
+  .card .desc { color:var(--mut); font-size:.85rem; flex:1; }
+  .card .links { display:flex; gap:10px; margin-top:6px; }
+  .card a { flex:1; text-align:center; padding:8px 0; border-radius:8px; font-size:.85rem; text-decoration:none; font-weight:600; }
+  .a-land { background:var(--acc); color:#fff; }
+  .a-admin { background:transparent; color:var(--acc); border:1px solid var(--acc); }
+  .row-wide { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; margin-top:18px; }
+  .meta { margin-top:36px; color:var(--mut); font-size:.8rem; display:flex; gap:18px; flex-wrap:wrap; }
+  .meta a { color:var(--mut); }
+  .meta a:hover { color:var(--acc); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⛓️ Blockchain <span>Brasil</span> — Registro Imutável</h1>
+  <p class="sub">8 cadeias: eventos vitais, patrimônio e governança — ECDSA P-256 + Proof-of-Work + SQLite.</p>
+
+  <div class="grid" id="chains">
+    <div class="card"><h2>🧑 Pessoas Físicas <code>PF</code></h2>
+      <div class="desc">Eventos vitais: nascimento, casamento, divórcio, óbito… Chave: CPF.</div>
+      <div class="links"><a class="a-land" href="/pf">Landing</a><a class="a-admin" href="/admin/pf">Admin</a></div></div>
+    <div class="card"><h2>🏠 Imóveis <code>IM</code></h2>
+      <div class="desc">Registro imobiliário: terreno, construção, hipoteca, leilão. Chave: matrícula.</div>
+      <div class="links"><a class="a-land" href="/im">Landing</a><a class="a-admin" href="/admin/im">Admin</a></div></div>
+    <div class="card"><h2>🚗 Veículos <code>MO</code></h2>
+      <div class="desc">Vida útil do veículo: transferências, multas, sinistros, baixa. Chave: placa.</div>
+      <div class="links"><a class="a-land" href="/mo">Landing</a><a class="a-admin" href="/admin/mo">Admin</a></div></div>
+    <div class="card"><h2>🏢 Empresas <code>CO</code></h2>
+      <div class="desc">Pessoa jurídica: sócios, capital, suspensão, baixa. Chave: CNPJ.</div>
+      <div class="links"><a class="a-land" href="/co">Landing</a><a class="a-admin" href="/admin/co">Admin</a></div></div>
+    <div class="card"><h2>⚓ Embarcações <code>EM</code></h2>
+      <div class="desc">Registro naval: construção, inspeção, licenciamento, sinistro. Chave: registro NR.</div>
+      <div class="links"><a class="a-land" href="/em">Landing</a><a class="a-admin" href="/admin/em">Admin</a></div></div>
+    <div class="card"><h2>✈️ Aeronaves <code>AC</code></h2>
+      <div class="desc">Registro aeronáutico: fabricação, airworthiness, inspeção. Chave: matrícula.</div>
+      <div class="links"><a class="a-land" href="/ac">Landing</a><a class="a-admin" href="/admin/ac">Admin</a></div></div>
+    <div class="card"><h2>🐕 Animais <code>AN</code></h2>
+      <div class="desc">Registro animal: nascimento, vacinas, microchip, óbito. Chave: ID (hash).</div>
+      <div class="links"><a class="a-land" href="/an">Landing</a><a class="a-admin" href="/admin/an">Admin</a></div></div>
+    <div class="card"><h2>🏛️ Autoridades <code>AU</code></h2>
+      <div class="desc">Governança: nomeação N0→N1→N2, alteração e revogação. Livro-razão.</div>
+      <div class="links"><a class="a-land" href="/au">Landing</a><a class="a-admin" href="/admin/au">Admin</a></div></div>
+  </div>
+
+  <div class="row-wide">
+    <div class="card"><h2>🔗 Cross-Chain</h2>
+      <div class="desc">Vínculos entre domínios: proprietário, sócio, posse.</div>
+      <div class="links"><a class="a-admin" href="/admin/cross">Admin Cross</a></div></div>
+    <div class="card"><h2>📚 API &amp; Docs</h2>
+      <div class="desc">REST completa com JWT: health, cadeias, eventos, validação.</div>
+      <div class="links"><a class="a-land" href="/docs">Swagger</a><a class="a-admin" href="/api/health">Health</a></div></div>
+    <div class="card"><h2>📊 Cobertura de Testes</h2>
+      <div class="desc">Relatório de cobertura do código (suite: 1126 testes).</div>
+      <div class="links"><a class="a-land" href="/htmlcov/index.html" target="_blank" rel="noopener">Abrir relatório</a><a class="a-admin" href="/htmlcov/coverage.xml" target="_blank" rel="noopener">XML</a></div></div>
+  </div>
+
+  <div class="meta">
+    <span>Fonte: <a href="https://github.com/alfcanova/BlockChain">github.com/alfcanova/BlockChain</a></span>
+    <span>Python 3.10+ · FastAPI · SQLite</span>
+  </div>
+</div>
+</body>
+</html>

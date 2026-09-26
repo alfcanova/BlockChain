@@ -14,7 +14,7 @@ import json
 import string
 from datetime import datetime, timedelta
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # raiz do projeto (scripts em makedemos/)
 
 from blockchain_pf import generate_authority_keypair
 from blockchain_pf.database import Database

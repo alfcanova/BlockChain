@@ -25,6 +25,7 @@ import asyncio
 import hashlib
 import json
 import re
+import threading
 import time
 import os
 import secrets
@@ -38,6 +39,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -131,6 +133,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Relatorio de cobertura (htmlcov/) servido estaticamente — link no index.html
+_HTMLCOV_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "htmlcov")
+if os.path.isdir(_HTMLCOV_DIR):
+    app.mount("/htmlcov", StaticFiles(directory=_HTMLCOV_DIR), name="htmlcov")
+
 allowed_origins_env = os.environ.get("ALLOWED_ORIGINS", "http://localhost:8000")
 app.add_middleware(
     CORSMiddleware,
@@ -149,6 +156,12 @@ em_chains: Dict[str, VesselChain] = {}
 ac_chains: Dict[str, AircraftChain] = {}
 an_chains: Dict[str, AnimalChain] = {}
 au_chains: Dict[str, AuthorityChain] = {}
+
+# Lock global para mutacao dos dicts acima (M3): criações/deleções de
+# cadeias via rotas FastAPI podem concorrer com a listagem/startup.
+# As cadeias individuais já possuem lock próprio (C6); este serializa
+# apenas as operações sobre os dicts (insert/clear/del).
+chains_lock = threading.Lock()
 cross_manager = CrossChainManager()
 cross_mo = CrossChainMO()
 cross_co = CrossChainCO()
@@ -528,192 +541,32 @@ def _validate_event_type(enum_cls, event_type: str) -> str:
 # ── Landing Pages ─────────────────────────────────────────────────────
 
 def _read_html(filename: str) -> str:
-    """Lê um arquivo HTML da pasta do projeto."""
-    filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+    """Lê um HTML do projeto.
+
+    Aceita caminho relativo à raiz OU nome simples resolvido para a
+    pasta do pacote do domínio (HTMLs moram junto de sua blockchain):
+      "admin_pf.html"     -> blockchain_pf/admin.html
+      "landing_au.html"   -> blockchain_au/landing.html
+      "admin_cross.html"  -> blockchain_au/admin_cross.html
+    """
+    root = os.path.dirname(os.path.abspath(__file__))
+    filepath = os.path.join(root, filename)
+    if not os.path.exists(filepath):
+        base = filename[:-5] if filename.endswith(".html") else filename  # sem .html
+        if base == "admin_cross":
+            filepath = os.path.join(root, "blockchain_au", "admin_cross.html")
+        elif base.startswith("admin_"):
+            filepath = os.path.join(root, f"blockchain_{base[6:]}", "admin.html")
+        elif base.startswith("landing_"):
+            filepath = os.path.join(root, f"blockchain_{base[8:]}", "landing.html")
     with open(filepath, "r", encoding="utf-8") as f:
         return f.read()
 
 
 @app.get("/", response_class=HTMLResponse)
 def landing_home():
-    """Landing page principal com links para cada blockchain."""
-    html = """<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blockchain Brasil — Sistema de Registro</title>
-<style>
-  :root {
-    --bg: #0a0e17; --surface: #111827; --surface2: #1e293b;
-    --border: #334155; --text: #e2e8f0; --text2: #94a3b8;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-  .hero {
-    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-    border-bottom: 1px solid var(--border); padding: 80px 32px; text-align: center;
-  }
-  .hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 16px; }
-  .hero h1 span { color: #8b5cf6; }
-  .hero p { font-size: 1.2rem; color: var(--text2); max-width: 700px; margin: 0 auto; }
-
-  .container { max-width: 1000px; margin: 0 auto; padding: 48px 24px; }
-
-  .blockchains {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px;
-  }
-  @media (max-width: 768px) { .blockchains { grid-template-columns: 1fr; } }
-
-  .bc-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-    padding: 32px 24px; text-align: center; transition: all 0.3s; text-decoration: none; color: inherit;
-  }
-  .bc-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-  .bc-card.pf { border-color: #3b82f6; }
-  .bc-card.pf:hover { border-color: #60a5fa; box-shadow: 0 8px 32px rgba(59,130,246,0.2); }
-  .bc-card.im { border-color: #22c55e; }
-  .bc-card.im:hover { border-color: #4ade80; box-shadow: 0 8px 32px rgba(34,197,94,0.2); }
-  .bc-card.mo { border-color: #f59e0b; }
-  .bc-card.mo:hover { border-color: #fbbf24; box-shadow: 0 8px 32px rgba(245,158,11,0.2); }
-  .bc-card.co { border-color: #8b5cf6; }
-  .bc-card.co:hover { border-color: #a78bfa; box-shadow: 0 8px 32px rgba(139,92,246,0.2); }
-  .bc-card.em { border-color: #06b6d4; }
-  .bc-card.em:hover { border-color: #22d3ee; box-shadow: 0 8px 32px rgba(6,182,212,0.2); }
-  .bc-card.ac { border-color: #ec4899; }
-  .bc-card.ac:hover { border-color: #f472b6; box-shadow: 0 8px 32px rgba(236,72,153,0.2); }
-  .bc-card.an { border-color: #10b981; }
-  .bc-card.an:hover { border-color: #34d399; box-shadow: 0 8px 32px rgba(16,185,129,0.2); }
-  .bc-card.au { border-color: #f43f5e; }
-  .bc-card.au:hover { border-color: #fb7185; box-shadow: 0 8px 32px rgba(244,63,94,0.2); }
-
-  .bc-card .icon { font-size: 3rem; margin-bottom: 16px; }
-  .bc-card h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
-  .bc-card .subtitle { color: var(--text2); font-size: 0.9rem; margin-bottom: 16px; }
-  .bc-card .desc { color: var(--text2); font-size: 0.85rem; line-height: 1.6; margin-bottom: 20px; }
-  .bc-card .btn {
-    display: inline-block; padding: 10px 24px; border-radius: 8px; font-weight: 700;
-    font-size: 0.9rem; transition: all 0.2s;
-  }
-  .bc-card.pf .btn { background: #3b82f6; color: white; }
-  .bc-card.im .btn { background: #22c55e; color: #000; }
-  .bc-card.mo .btn { background: #f59e0b; color: #000; }
-  .bc-card.co .btn { background: #8b5cf6; color: white; }
-  .bc-card.em .btn { background: #06b6d4; color: white; }
-  .bc-card.ac .btn { background: #ec4899; color: white; }
-  .bc-card.an .btn { background: #10b981; color: white; }
-  .bc-card.au .btn { background: #f43f5e; color: white; }
-  .bc-card .btn:hover { opacity: 0.9; }
-
-  .section-title {
-    font-size: 1.5rem; font-weight: 700; margin-top: 48px; margin-bottom: 24px;
-    color: var(--text); text-align: center;
-  }
-
-  .api-links {
-    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 16px;
-  }
-  .api-links a {
-    background: var(--surface2); border: 1px solid var(--border); padding: 10px 20px;
-    border-radius: 8px; color: var(--text2); text-decoration: none; font-size: 0.9rem;
-    transition: all 0.2s;
-  }
-  .api-links a:hover { border-color: #8b5cf6; color: var(--text); }
-
-  .footer { text-align: center; padding: 32px; color: var(--text2); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 48px; }
-</style>
-</head>
-<body>
-
-<div class="hero">
-  <h1>&#x1f517; Blockchain <span>Brasil</span></h1>
-  <p>Sistema de registro imutável para Pessoas Físicas, Imóveis e Veículos — com assinaturas digitais ECDSA e integração cross-chain.</p>
-</div>
-
-<div class="container">
-  <h2 class="section-title">Escolha um Blockchain</h2>
-  <div class="blockchains">
-    <a href="/pf" class="bc-card pf">
-      <div class="icon">👤</div>
-      <h2>Blockchain PF</h2>
-      <div class="subtitle">Pessoas Físicas</div>
-      <div class="desc">Registro de eventos vitais: nascimento, casamento, divórcio, vacinas, próteses e óbito.</div>
-      <span class="btn">Acessar</span>
-    </a>
-    <a href="/im" class="bc-card im">
-      <div class="icon">🏠</div>
-      <h2>Blockchain IM</h2>
-      <div class="subtitle">Imóveis</div>
-      <div class="desc">Registro imobiliário: terreno, construção, compra/venda, hipoteca e leilão.</div>
-      <span class="btn">Acessar</span>
-    </a>
-    <a href="/mo" class="bc-card mo">
-      <div class="icon">🚗</div>
-      <h2>Blockchain MO</h2>
-      <div class="subtitle">Veículos (Móveis)</div>
-      <div class="desc">Vida útil do veículo: fabricação, transferências, sinistros, multas e recalls.</div>
-      <span class="btn">Acessar</span>
-    </a>
-    <a href="/co" class="bc-card co">
-      <div class="icon">🏢</div>
-      <h2>Blockchain CO</h2>
-      <div class="subtitle">Empresas (CNPJ)</div>
-      <div class="desc">Vida da empresa: constituição, sócios, fusões, cisões, dissolução e certidões.</div>
-      <span class="btn">Acessar</span>
-    </a>
-    <a href="/em" class="bc-card em">
-      <div class="icon">⛵</div>
-      <h2>Blockchain EM</h2>
-      <div class="subtitle">Embarcações</div>
-      <div class="desc">Registro naval: construção, transferências, inspeções e licenciamento.</div>
-      <span class="btn">Acessar</span>
-    </a>
-    <a href="/ac" class="bc-card ac">
-      <div class="icon">✈️</div>
-      <h2>Blockchain AC</h2>
-      <div class="subtitle">Aeronaves</div>
-      <div class="desc">Registro aeronáutico: fabricação, manutenção, airworthiness e transferências.</div>
-      <span class="btn">Acessar</span>
-    </a>
-    <a href="/an" class="bc-card an">
-      <div class="icon">🐾</div>
-      <h2>Blockchain AN</h2>
-      <div class="subtitle">Animais</div>
-      <div class="desc">Registro animal: nascimento, vacinas, castração, tratamentos e transferências.</div>
-      <span class="btn">Acessar</span>
-    </a>
-    <a href="/au" class="bc-card au">
-      <div class="icon">🪪</div>
-      <h2>Blockchain AU</h2>
-      <div class="subtitle">Autoridades</div>
-      <div class="desc">Hierarquia de emissores: Brasil → UF → cidade. Nomeação, alteração e revogação de autoridades por escopo/região.</div>
-      <span class="btn">Acessar</span>
-    </a>
-  </div>
-
-  <h2 class="section-title">APIs</h2>
-  <div class="api-links">
-    <a href="/api/docs">📄 Swagger (ReDoc)</a>
-    <a href="/api/chains">🔗 Cadeias PF</a>
-    <a href="/api/im">🏠 Imóveis</a>
-    <a href="/api/mo">🚗 Veículos</a>
-    <a href="/api/co">🏢 Empresas</a>
-    <a href="/api/em">⛵ Embarcações</a>
-    <a href="/api/ac">✈️ Aeronaves</a>
-    <a href="/api/an">🐾 Animais</a>
-    <a href="/api/au">🪪 Autoridades</a>
-    <a href="/api/health">💓 Health Check</a>
-  </div>
-</div>
-
-<div class="footer">
-  Blockchain Brasil v4.0 | ECDSA P-256 | SHA-256 | Proof of Work | FastAPI
-</div>
-
-</body>
-</html>"""
-    return HTMLResponse(content=html)
+    """Portal: index.html com links para cada blockchain."""
+    return HTMLResponse(content=_read_html("index.html"))
 
 
 @app.get("/pf", response_class=HTMLResponse)
@@ -939,10 +792,10 @@ def create_chain(req: ChainCreateRequest, cpf: str = Query(...),
     kp = generate_authority_keypair(signer_label)
     chain.set_signer(kp)
 
-    chains[cpf_clean] = chain
-    # Salva no SQLite
-    chain_data = {"difficulty": chain.difficulty, "chain": [b.to_dict() for b in chain.chain]}
-    db.save_chain(cpf_clean, chain.difficulty, chain_data)
+    with chains_lock:
+        chains[cpf_clean] = chain
+    # Salva no SQLite (escrita incremental O(1) — M2)
+    _persist_domain("pf", cpf_clean, chain)
     return ok({"cpf": cpf_clean, "difficulty": req.difficulty}, "Cadeia criada. Use POST /api/chain/{cpf}/event para registrar o nascimento.")
 
 
@@ -985,7 +838,8 @@ def delete_chain(cpf: str, user: dict = Depends(require_admin)):
     cpf_clean = cpf.replace(".", "").replace("-", "").replace("/", "")
     if cpf_clean not in chains:
         raise HTTPException(status_code=404, detail="Cadeia nao encontrada.")
-    del chains[cpf_clean]
+    with chains_lock:
+        del chains[cpf_clean]
     db.delete_chain(cpf_clean)
     return ok(message="Cadeia removida.")
 
@@ -993,12 +847,10 @@ def delete_chain(cpf: str, user: dict = Depends(require_admin)):
 # ── Rotas: Eventos ─────────────────────────────────────────────────────
 
 def _persist_chain(cpf: str) -> None:
-    """Salva a cadeia no SQLite (normaliza o CPF — C4)."""
+    """Salva a cadeia PF no SQLite (normaliza o CPF — C4; M5 delega)."""
     cpf_clean = re.sub(r"\D", "", cpf)
-    if cpf_clean in chains and db:
-        chain = chains[cpf_clean]
-        chain_data = {"difficulty": chain.difficulty, "chain": [b.to_dict() for b in chain.chain]}
-        db.save_chain(cpf_clean, chain.difficulty, chain_data)
+    if cpf_clean in chains:
+        _persist_domain("pf", cpf_clean, chains[cpf_clean])
 
 
 def _ja_obito(cpf: str) -> bool:
@@ -1438,7 +1290,8 @@ def create_imovel(req: TerrenoRequest, user: dict = Depends(require_write_access
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    im_chains[matricula] = chain
+    with chains_lock:
+        im_chains[matricula] = chain
     _persist_imovel(matricula)
     return ok({
         "matricula": matricula,
@@ -1650,25 +1503,39 @@ def add_heranca(matricula: str, req: HerancaRequest, user: dict = Depends(requir
 def delete_imovel(matricula: str, user: dict = Depends(require_admin)):
     if matricula not in im_chains:
         raise HTTPException(status_code=404, detail="Imóvel não encontrado.")
-    del im_chains[matricula]
+    with chains_lock:
+        del im_chains[matricula]
     db.delete_imovel(matricula)
     return ok(message="Imóvel removido.")
 
 
-# ── Helpers: Persistência ──────────────────────────────────────────────
+# ── Helpers: Persistência (M5: helper unificado; M2: escrita O(1)) ─────
+
+def _persist_domain(domain: str, cid: str, chain) -> None:
+    """Persiste uma cadeia de QUALQUER dominio no SQLite.
+
+    Substitui os 5 helpers antigos (_persist_chain, _persist_imovel,
+    _persist_veiculo, _persist_autoridade, _save_chain_to_db).
+    Escrita incremental (M2): grava apenas o bloco novo (O(1)) na
+    tabela `blocks`; o snapshot consolidado em `chains` é atualizado
+    para o caminho de leitura existente.
+    """
+    if not db or not chain or not len(chain):
+        return
+    last = chain.chain[-1]
+    db.save_block_incremental(domain, cid, chain.difficulty, last.to_dict())
+
 
 def _persist_imovel(matricula: str) -> None:
-    if matricula in im_chains and db:
-        chain = im_chains[matricula]
-        chain_data = {"difficulty": chain.difficulty, "chain": [b.to_dict() for b in chain.chain]}
-        db.save_imovel(matricula, chain.difficulty, chain_data)
+    """Delegado mantido por compatibilidade com chamadas existentes."""
+    if matricula in im_chains:
+        _persist_domain("im", matricula, im_chains[matricula])
 
 
 def _persist_veiculo(placa: str) -> None:
-    if placa in mo_chains and db:
-        chain = mo_chains[placa]
-        chain_data = {"difficulty": chain.difficulty, "chain": [b.to_dict() for b in chain.chain]}
-        db.save_veiculo(placa, chain.difficulty, chain_data)
+    """Delegado mantido por compatibilidade com chamadas existentes."""
+    if placa in mo_chains:
+        _persist_domain("mo", placa, mo_chains[placa])
 
 
 # ── Rotas: Veículos (MO) ──────────────────────────────────────────────
@@ -1704,7 +1571,8 @@ def create_veiculo(req: VehicleCreateRequest, user: dict = Depends(require_write
         genesis = chain.create_genesis(dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    mo_chains[placa] = chain
+    with chains_lock:
+        mo_chains[placa] = chain
     _persist_veiculo(placa)
     return ok({"placa": placa, "bloco_index": genesis.index, "hash": genesis.hash}, "Veiculo criado.")
 
@@ -1768,7 +1636,8 @@ def delete_veiculo(placa: str, user: dict = Depends(require_admin)):
     placa = placa.upper()
     if placa not in mo_chains:
         raise HTTPException(status_code=404, detail="Veiculo nao encontrado.")
-    del mo_chains[placa]
+    with chains_lock:
+        del mo_chains[placa]
     db.delete_veiculo(placa)
     return ok(message="Veiculo removido.")
 
@@ -1801,7 +1670,8 @@ def create_empresa(req: CompanyCreateRequest, user: dict = Depends(require_write
         genesis = chain.create_genesis(dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    co_chains[cnpj_clean] = chain
+    with chains_lock:
+        co_chains[cnpj_clean] = chain
     _save_chain_to_db("co", cnpj_clean, chain)
     return ok({"cnpj": cnpj_clean, "bloco_index": genesis.index, "hash": genesis.hash}, "Empresa criada.")
 
@@ -1848,7 +1718,8 @@ def delete_empresa(cnpj: str, user: dict = Depends(require_admin)):
     cnpj_clean = re.sub(r"\D", "", cnpj)
     if cnpj_clean not in co_chains:
         raise HTTPException(status_code=404, detail="Empresa nao encontrada.")
-    del co_chains[cnpj_clean]
+    with chains_lock:
+        del co_chains[cnpj_clean]
     db.delete_domain_chain("co", cnpj_clean)
     return ok(message="Empresa removida.")
 
@@ -1881,7 +1752,8 @@ def create_embarcacao(req: VesselCreateRequest, user: dict = Depends(require_wri
         genesis = chain.create_genesis(dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    em_chains[reg] = chain
+    with chains_lock:
+        em_chains[reg] = chain
     _save_chain_to_db("em", reg, chain)
     return ok({"registro_nr": reg, "bloco_index": genesis.index, "hash": genesis.hash}, "Embarcacao criada.")
 
@@ -1923,7 +1795,8 @@ def add_embarcacao_event(registro: str, req: DomainEventRequest, user: dict = De
 def delete_embarcacao(registro: str, user: dict = Depends(require_admin)):
     if registro not in em_chains:
         raise HTTPException(status_code=404, detail="Embarcacao nao encontrada.")
-    del em_chains[registro]
+    with chains_lock:
+        del em_chains[registro]
     db.delete_domain_chain("em", registro)
     return ok(message="Embarcacao removida.")
 
@@ -1956,7 +1829,8 @@ def create_aeronave(req: AircraftCreateRequest, user: dict = Depends(require_wri
         genesis = chain.create_genesis(dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    ac_chains[mat] = chain
+    with chains_lock:
+        ac_chains[mat] = chain
     _save_chain_to_db("ac", mat, chain)
     return ok({"matricula": mat, "bloco_index": genesis.index, "hash": genesis.hash}, "Aeronave criada.")
 
@@ -2003,7 +1877,8 @@ def delete_aeronave(matricula: str, user: dict = Depends(require_admin)):
     matricula = matricula.upper()
     if matricula not in ac_chains:
         raise HTTPException(status_code=404, detail="Aeronave nao encontrada.")
-    del ac_chains[matricula]
+    with chains_lock:
+        del ac_chains[matricula]
     db.delete_domain_chain("ac", matricula)
     return ok(message="Aeronave removida.")
 
@@ -2037,7 +1912,8 @@ def create_animal(req: AnimalCreateRequest, user: dict = Depends(require_write_a
         genesis = chain.create_genesis(dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    an_chains[aid] = chain
+    with chains_lock:
+        an_chains[aid] = chain
     _save_chain_to_db("an", aid, chain)
     return ok({"animal_id": aid, "bloco_index": genesis.index, "hash": genesis.hash}, "Animal registrado.")
 
@@ -2079,7 +1955,8 @@ def add_animal_event(animal_id: str, req: DomainEventRequest, user: dict = Depen
 def delete_animal(animal_id: str, user: dict = Depends(require_admin)):
     if animal_id not in an_chains:
         raise HTTPException(status_code=404, detail="Animal nao encontrado.")
-    del an_chains[animal_id]
+    with chains_lock:
+        del an_chains[animal_id]
     db.delete_domain_chain("an", animal_id)
     return ok(message="Animal removido.")
 
@@ -2107,11 +1984,21 @@ class AuthorityCreateRequest(BaseModel):
     motivo: str = Field("", description="Motivo da nomeacao")
 
 
+def _estado_para_evento(estado: dict) -> dict:
+    """Extrai de um estado AU os campos aceitos por confirmacao()/recusa().
+
+    get_estado_atual() retorna o snapshot completo (status, nomeado_por,
+    revogado etc.); passar **estado direto quebraria a factory (TypeError).
+    """
+    return {k: estado.get(k, "") for k in
+            ("nome", "nivel", "escopo", "uf", "cidade")}
+
+
 class AuthorityAlterRequest(BaseModel):
-    nome: str = Field("", description="Novo nome")
-    escopo: str = Field("", description="Novo escopo")
-    uf: str = Field("", description="Nova UF")
-    cidade: str = Field("", description="Nova cidade")
+    nome: Optional[str] = Field(None, description="Novo nome (None = manter)")
+    escopo: Optional[str] = Field(None, description="Novo escopo (None = manter)")
+    uf: Optional[str] = Field(None, description="Nova UF (None = manter)")
+    cidade: Optional[str] = Field(None, description="Nova cidade (None = manter)")
     data: str = Field("", description="Data da alteracao")
     motivo: str = Field("", description="Motivo da alteracao")
 
@@ -2153,8 +2040,8 @@ def _estado_ou_genesis(chain) -> dict:
 
 def _persist_autoridade(uid: str) -> None:
     chain = au_chains.get(uid)
-    if chain and db:
-        _save_chain_to_db("au", uid, chain)
+    if chain:
+        _persist_domain("au", uid, chain)
 
 
 def _slug(s: str) -> str:
@@ -2265,6 +2152,8 @@ def criar_autoridade(req: AuthorityCreateRequest, user: dict = Depends(get_curre
                                    "(N0 nomeia N1/N2; N1 nomeia apenas N2 do mesmo escopo+UF).")
 
     uid = _username_autoridade(req.nivel, req.escopo, req.uf, req.cidade)
+    if uid in au_chains or get_user(uid) is not None:
+        raise HTTPException(status_code=409, detail=f"Autoridade ja existe: {uid}")
     chain = AuthorityChain(difficulty=DEFAULT_DIFFICULTY)
     chain.set_signer(generate_authority_keypair("autoridade"))
     dados["username"] = uid
@@ -2324,7 +2213,8 @@ def alterar_autoridade(uid: str, req: AuthorityAlterRequest,
 
     bloco = au_chains[uid].add_event(AuthorityEventType.ALTERACAO.value,
                                      factory.alteracao(
-                                         nome=req.nome, escopo=novo_escopo,
+                                         nome=req.nome, nivel=nivel,
+                                         escopo=novo_escopo,
                                          uf=novo_uf, cidade=nova_cidade,
                                          data=req.data, motivo=req.motivo,
                                      ))
@@ -2382,11 +2272,11 @@ def confirmar_alteracao(uid: str, req: AuthorityEventConfirmRequest,
                             detail="Sem permissao para confirmar esta alteracao.")
     bloco = au_chains[uid].add_event(AuthorityEventType.CONFIRMACAO.value,
                                      AuthorityEventFactory.confirmacao(
-                                         username=uid, **estado,
+                                         username=uid, **_estado_para_evento(estado),
                                          confirmado_por=actor, data=req.data, motivo=req.motivo,
                                      ))
     _persist_autoridade(uid)
-    update_user_metadata(uid, nome=estado.get("nome", ""),
+    update_user_metadata(uid,
                          escopo=estado.get("escopo", ""),
                          uf=estado.get("uf", ""), cidade=estado.get("cidade", ""))
     return ok({"id": uid, "bloco_index": bloco.index, "hash": bloco.hash,
@@ -2408,7 +2298,7 @@ def recusar_alteracao(uid: str, req: AuthorityEventConfirmRequest,
                             detail="Sem permissao para recusar esta alteracao.")
     bloco = au_chains[uid].add_event(AuthorityEventType.RECUSA.value,
                                      AuthorityEventFactory.recusa(
-                                         username=uid, **estado,
+                                         username=uid, **_estado_para_evento(estado),
                                          recusado_por=actor, data=req.data, motivo=req.motivo,
                                      ))
     _persist_autoridade(uid)
@@ -2755,22 +2645,38 @@ _CROSS_MANAGERS = [
 
 
 def _chain_payload(chain) -> dict:
-    """Serializa uma cadeia para persistencia."""
+    """Serializa uma cadeia para persistencia (usado no rebuild inicial)."""
     return {"difficulty": chain.difficulty, "chain": [b.to_dict() for b in chain.chain]}
 
 
 def _save_chain_to_db(domain: str, cid: str, chain) -> None:
-    """Salva uma cadeia de qualquer dominio no SQLite."""
-    if db:
-        db.save_domain_chain(domain, cid, chain.difficulty, _chain_payload(chain))
+    """Alias legado de _persist_domain (M5)."""
+    _persist_domain(domain, cid, chain)
 
 
-def _rebuild_chain(cls, data, signer_label: str):
-    """Reconstrói uma cadeia a partir do JSON salvo no SQLite."""
+def _rebuild_chain(cls, data, signer_label: str, domain: str = "", cid: str = ""):
+    """Reconstrói uma cadeia a partir do JSON salvo no SQLite.
+
+    Fonte primária: tabela `blocks` (M2, escrita incremental O(1)).
+    Fallback: snapshot consolidado em `chains` (formato legado com
+    "chain" embutido) — usado por bases anteriores ao M2.
+    """
     from blockchain_pf.block import Block
-    chain = cls(difficulty=data["difficulty"])
+    # Merge snapshot legado (chains.data["chain"]) + blocos incrementais
+    # (tabela blocks, M2). O incremental prevalece por índice; cadeias
+    # criadas 100% pós-M2 só existem em `blocks`.
+    por_indice: dict[int, dict] = {}
+    for b in data.get("chain", []):
+        por_indice[int(b.get("index", 0))] = b
+    for b in (db.load_blocks(domain, cid) if (db and domain and cid) else []):
+        por_indice[int(b.get("index", 0))] = b
+    blocos = [por_indice[i] for i in sorted(por_indice)]
+    if not blocos:
+        raise KeyError(f"Cadeia {domain}/{cid} sem blocos restauraveis")
+    difficulty = data.get("difficulty", blocos[0].get("difficulty", 2))
+    chain = cls(difficulty=difficulty)
     chain.set_signer(generate_authority_keypair(signer_label))
-    chain.chain = [Block.from_dict(b) for b in data["chain"]]
+    chain.chain = [Block.from_dict(b) for b in blocos]
     for i, block in enumerate(chain.chain):
         evt = block.data.get("evento_tipo", "DESCONHECIDO")
         if evt not in chain._event_index:
@@ -2840,7 +2746,8 @@ def startup():
     for domain, store, cls, signer_label in _CHAIN_SPECS:
         saved = db.load_all_domain_chains(domain)
         for cid, data in saved.items():
-            store[cid] = _rebuild_chain(cls, data, signer_label)
+            store[cid] = _rebuild_chain(cls, data, signer_label,
+                                        domain=domain, cid=cid)
 
     _restore_cross_references()
     _restore_graph()

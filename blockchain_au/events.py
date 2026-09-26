@@ -38,8 +38,15 @@ class AuthorityEventFactory:
 
     @staticmethod
     def _validar_base(nivel: int, escopo: str, uf: str, cidade: str) -> None:
+        if nivel == 0:
+            # Autoridade nacional (Brasil): sem escopo/UF/cidade.
+            if str(escopo).strip() or str(uf).strip() or str(cidade).strip():
+                raise ValueError(
+                    "Autoridade nacional (nivel 0) nao possui escopo/UF/cidade."
+                )
+            return
         if nivel not in (1, 2):
-            raise ValueError(f"Nivel de autoridade invalido: {nivel}. Use 1 (UF) ou 2 (cidade).")
+            raise ValueError(f"Nivel de autoridade invalido: {nivel}. Use 0 (nacional), 1 (UF) ou 2 (cidade).")
         if escopo not in DOMINIOS:
             raise ValueError(f"Escopo invalido: {escopo}. Escopos: {', '.join(DOMINIOS)}.")
         if not validar_uf(uf):
@@ -65,7 +72,7 @@ class AuthorityEventFactory:
         data: str = "",
         motivo: str = "",
     ) -> dict[str, Any]:
-        """Genesis: criacao de autoridade N1 (UF) ou N2 (cidade)."""
+        """Genesis: criacao de autoridade N0 (nacional), N1 (UF) ou N2 (cidade)."""
         AuthorityEventFactory._validar_base(nivel, escopo, uf, cidade or "")
         if not nome or not str(nome).strip():
             raise ValueError("Nome da autoridade e obrigatorio.")

@@ -21,7 +21,8 @@ env/
 
 # Coverage
 .coverage
-coverage.xml
+/coverage.xml
+
 .pytest_cache/
 
 # Database

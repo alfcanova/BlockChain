@@ -11,7 +11,7 @@ Executa com: PYTHONIOENCODING=utf-8 python demo_auto_new.py
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # raiz do projeto (scripts em makedemos/)
 
 from blockchain_pf import generate_authority_keypair
 from blockchain_pf.database import Database
