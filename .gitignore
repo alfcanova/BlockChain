@@ -29,8 +29,9 @@ coverage.xml
 *.db-shm
 *.db-wal
 
-# Demo output (generated)
+# Demo output (gerado; JSONs de referencia ficam em database/demo_output)
 demo_output/
+database/demo_output/
 
 # Testes locais (não versionados; use 'git add -f tests/...' para forçar)
 tests/

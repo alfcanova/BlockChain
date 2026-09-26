@@ -129,8 +129,8 @@ def demo_co():
     print(f"  Socios: {len(estado['socios'])}")
     print(f"  Capital: R$ {estado['capital_social']:,.2f}")
 
-    chain.save_to_file("demo_output/co_12345678000195.json")
-    print(f"\n  Cadeia salva em demo_output/co_12345678000195.json")
+    chain.save_to_file(os.path.join("database", "demo_output", "co_12345678000195.json"))
+    print(f"\n  Cadeia salva em database/demo_output/co_12345678000195.json")
     return chain
 
 
@@ -238,8 +238,8 @@ def demo_em():
     print(f"  Situacao: {estado['situacao']}")
     print(f"  Proprietarios: {len(estado['proprietarios'])}")
 
-    chain.save_to_file("demo_output/em_NR-2024-001.json")
-    print(f"\n  Cadeia salva em demo_output/em_NR-2024-001.json")
+    chain.save_to_file(os.path.join("database", "demo_output", "em_NR-2024-001.json"))
+    print(f"\n  Cadeia salva em database/demo_output/em_NR-2024-001.json")
     return chain
 
 
@@ -347,8 +347,8 @@ def demo_ac():
     print(f"  Situacao: {estado['situacao']}")
     print(f"  Proprietarios: {len(estado['proprietarios'])}")
 
-    chain.save_to_file("demo_output/ac_PT-ABC.json")
-    print(f"\n  Cadeia salva em demo_output/ac_PT-ABC.json")
+    chain.save_to_file(os.path.join("database", "demo_output", "ac_PT-ABC.json"))
+    print(f"\n  Cadeia salva em database/demo_output/ac_PT-ABC.json")
     return chain
 
 
@@ -464,8 +464,8 @@ def demo_an():
     print(f"  Vacinas: {len(estado['vacinas'])}")
     print(f"  Tratamentos: {len(estado['tratamentos'])}")
 
-    chain.save_to_file("demo_output/an_rex.json")
-    print(f"\n  Cadeia salva em demo_output/an_rex.json")
+    chain.save_to_file(os.path.join("database", "demo_output", "an_rex.json"))
+    print(f"\n  Cadeia salva em database/demo_output/an_rex.json")
     return chain
 
 
@@ -510,7 +510,7 @@ def main():
             db.save_domain_chain(name.lower(), ids[name], chain.difficulty, chain_data)
 
     print("\n  Demonstracao concluida com sucesso!")
-    print(f"  Arquivos salvos em demo_output/")
+    print(f"  Arquivos salvos em database/demo_output/")
     print(f"  Cadeias persistidas no SQLite centralizado: {db.db_path}\n")
 
 

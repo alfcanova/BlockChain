@@ -209,8 +209,10 @@ def main():
     # ── 12. Persistencia ───────────────────────────────────────────────
     linha("12. PERSISTENCIA (JSON)")
 
-    chain.save_to_file("cadeia_pf_assinada.json")
-    print(f"  Cadeia salva em: cadeia_pf_assinada.json")
+    # Persistencia (JSON de referencia + SQLite centralizado)
+    json_out = os.path.join("database", "cadeia_pf_assinada.json")
+    chain.save_to_file(json_out)
+    print(f"  Cadeia salva em: {json_out}")
 
     # Persistencia no SQLite centralizado (banco <projeto>/database/blockchain.db)
     db = Database()
@@ -219,7 +221,7 @@ def main():
     db.save_graph_node("12345678909", "Maria Clara Oliveira Santos Pereira", True, 0)
     print(f"  Cadeia persistida no SQLite centralizado: {db.db_path}")
 
-    chain2 = Blockchain.load_from_file("cadeia_pf_assinada.json")
+    chain2 = Blockchain.load_from_file(json_out)
     print(f"  Cadeia recarregada: {len(chain2)} bloco(s)")
     v3, m3 = chain2.validate(require_signatures=True)
     print(f"  Validacao apos recarga: {'OK' if v3 else 'FALHA'}: {m3}")

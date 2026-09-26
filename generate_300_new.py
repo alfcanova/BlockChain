@@ -586,7 +586,7 @@ def salvar_e_validar(chains_co, chains_em, chains_ac, chains_an, db=None):
     print(f"  FASE 5: Validacao e Persistencia")
     print(f"{'='*60}")
 
-    os.makedirs("demo_output", exist_ok=True)
+    os.makedirs(os.path.join("database", "demo_output"), exist_ok=True)
 
     for name, chains in [("co", chains_co), ("em", chains_em), ("ac", chains_ac), ("an", chains_an)]:
         total_blocos = 0
@@ -613,7 +613,7 @@ def salvar_e_validar(chains_co, chains_em, chains_ac, chains_an, db=None):
 
             # Salva apenas primeiros 100 por blockchain (para nao encher disco)
             if list(chains.keys()).index(key) < 100:
-                filepath = f"demo_output/{name}_{key}.json"
+                filepath = os.path.join("database", "demo_output", f"{name}_{key}.json")
                 chain.save_to_file(filepath)
 
         print(f"\n  {name.upper()}:")

@@ -1044,19 +1044,19 @@ def main():
     print(relatorio(pf, im, mo))
 
     # Salva
-    os.makedirs("demo_output", exist_ok=True)
+    os.makedirs(os.path.join("database", "demo_output"), exist_ok=True)
 
     print("\n  Salvando PF...")
     for cpf, chain in pf.items():
-        chain.save_to_file(f"demo_output/pf_{cpf}.json")
+        chain.save_to_file(os.path.join("database", "demo_output", f"pf_{cpf}.json"))
 
     print("  Salvando IM...")
     for mat, chain in im.items():
-        chain.save_to_file(f"demo_output/im_{mat.replace('/', '_')}.json")
+        chain.save_to_file(os.path.join("database", "demo_output", f"im_{mat.replace('/', '_')}.json"))
 
     print("  Salvando MO...")
     for placa, chain in mo.items():
-        chain.save_to_file(f"demo_output/mo_{placa}.json")
+        chain.save_to_file(os.path.join("database", "demo_output", f"mo_{placa}.json"))
 
     print(f"\n  Arquivos salvos em demo_output/")
     print(f"  Total: {len(os.listdir('demo_output'))} arquivos JSON\n")

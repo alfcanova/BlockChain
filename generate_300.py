@@ -1141,11 +1141,12 @@ def validar_e_reportar(pf_chains, im_chains, mo_chains, cross_im, cross_mo, db=N
   └─────────────────────────────────────────────────────┘
 """)
 
-    # Salvar cross-chain em JSON (referencia) + SQLite centralizado
-    cross_im.save_to_file("cross_chain_im.json")
-    cross_mo.save_to_file("cross_chain_mo.json")
-    print("  💾 Cross-chain IM salvo em: cross_chain_im.json")
-    print("  💾 Cross-chain MO salvo em: cross_chain_mo.json")
+    # Salvar cross-chain em JSON (referencia, em database/) + SQLite centralizado
+    os.makedirs("database", exist_ok=True)
+    cross_im.save_to_file(os.path.join("database", "cross_chain_im.json"))
+    cross_mo.save_to_file(os.path.join("database", "cross_chain_mo.json"))
+    print("  💾 Cross-chain IM salvo em: database/cross_chain_im.json")
+    print("  💾 Cross-chain MO salvo em: database/cross_chain_mo.json")
     db.clear_references("im")
     for ref in getattr(cross_im, "_references", []):
         db.save_reference("im", ref.to_dict())
