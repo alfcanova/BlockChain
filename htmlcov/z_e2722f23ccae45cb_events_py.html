@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for blockchain_pf\events.py: 92%</title>
+    <title>Coverage for blockchain_pf\events.py: 93%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
     <link rel="stylesheet" href="style_cb_0853b3de.css" type="text/css">
     <script src="coverage_html_cb_188fc9a4.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>blockchain_pf<span class="sep">\</span>events.py</b>:
-            <span class="pc_cov">92%</span>
+            <span class="pc_cov">93%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -55,8 +55,8 @@
         </aside>
         <h2>
             <span class="text">213 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">197<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">16<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">198<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">15<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_e2722f23ccae45cb_geografia_br_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-26 16:47 -0300
+            created at 2026-09-26 17:17 -0300
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -224,10 +224,10 @@
     <p class="run run2"><span class="n"><a id="t142" href="#t142">142</a></span><span class="t">        <span class="nam">payload</span><span class="op">,</span> <span class="nam">c</span><span class="op">.</span><span class="nam">split</span><span class="op">(</span><span class="str">&quot;.&quot;</span><span class="op">)</span><span class="op">[</span><span class="num">0</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t143" href="#t143">143</a></span><span class="t">    <span class="op">)</span> <span class="key">or</span> <span class="op">(</span><span class="str">&quot;.&quot;</span> <span class="key">in</span> <span class="nam">c</span> <span class="key">and</span> <span class="key">not</span> <span class="nam">_tem_campo</span><span class="op">(</span><span class="nam">payload</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="nam">c</span><span class="op">.</span><span class="nam">split</span><span class="op">(</span><span class="str">&quot;.&quot;</span><span class="op">)</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span><span class="op">,</span> <span class="nam">c</span><span class="op">.</span><span class="nam">split</span><span class="op">(</span><span class="str">&quot;.&quot;</span><span class="op">)</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t144" href="#t144">144</a></span><span class="t">    <span class="key">if</span> <span class="nam">ausentes</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t145" href="#t145">145</a></span><span class="t">        <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t146" href="#t146">146</a></span><span class="t">            <span class="fst">f&quot;</span><span class="fst">Campos obrigat&#243;rios ausentes para </span><span class="op">{</span><span class="nam">payload</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="str">&#x27;evento_tipo&#x27;</span><span class="op">,</span> <span class="str">&#x27;evento&#x27;</span><span class="op">)</span><span class="op">}</span><span class="fst">: </span><span class="fst">&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t147" href="#t147">147</a></span><span class="t">            <span class="fst">f&quot;</span><span class="op">{</span><span class="str">&#x27;, &#x27;</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="nam">ausentes</span><span class="op">)</span><span class="op">}</span><span class="fst">&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t148" href="#t148">148</a></span><span class="t">        <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t145" href="#t145">145</a></span><span class="t">        <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t146" href="#t146">146</a></span><span class="t">            <span class="fst">f&quot;</span><span class="fst">Campos obrigat&#243;rios ausentes para </span><span class="op">{</span><span class="nam">payload</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="str">&#x27;evento_tipo&#x27;</span><span class="op">,</span> <span class="str">&#x27;evento&#x27;</span><span class="op">)</span><span class="op">}</span><span class="fst">: </span><span class="fst">&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t147" href="#t147">147</a></span><span class="t">            <span class="fst">f&quot;</span><span class="op">{</span><span class="str">&#x27;, &#x27;</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="nam">ausentes</span><span class="op">)</span><span class="op">}</span><span class="fst">&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t148" href="#t148">148</a></span><span class="t">        <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t149" href="#t149">149</a></span><span class="t">    <span class="nam">datas_invalidas</span> <span class="op">=</span> <span class="op">[</span><span class="nam">d</span> <span class="key">for</span> <span class="nam">d</span> <span class="key">in</span> <span class="nam">datas</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t150" href="#t150">150</a></span><span class="t">                       <span class="key">if</span> <span class="nam">d</span> <span class="key">in</span> <span class="nam">payload</span> <span class="key">and</span> <span class="key">not</span> <span class="nam">_valida_data_ou_vazia</span><span class="op">(</span><span class="nam">payload</span><span class="op">[</span><span class="nam">d</span><span class="op">]</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t151" href="#t151">151</a></span><span class="t">    <span class="key">if</span> <span class="nam">datas_invalidas</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -798,7 +798,7 @@
             <a class="nav" href="z_e2722f23ccae45cb_geografia_br_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-26 16:47 -0300
+            created at 2026-09-26 17:17 -0300
         </p>
     </div>
 </footer>

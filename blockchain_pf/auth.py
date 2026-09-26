@@ -278,14 +278,15 @@ def list_users() -> list[dict]:
 
 
 def delete_user(username: str) -> bool:
-    """Remove um usuario."""
+    """Remove um usuario. True se ele existia (em memoria ou no banco)."""
+    existed = False
     with _user_lock:
         if username in _users_db:
             del _users_db[username]
+            existed = True
     if _db:
-        return _db.delete_user(username)
-    with _user_lock:
-        return username in _users_db
+        return _db.delete_user(username) or existed
+    return existed
 
 
 # ── Tokens JWT ─────────────────────────────────────────────────────────
