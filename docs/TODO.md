@@ -1,86 +1,31 @@
 # Blockchain Brasil — Analise de Codigo & TODO
 
-> Gerado em 2026-09-22 | 959 testes passando | 8 cadeias | ~18.300 linhas Python
-> **Atualizado em 2026-09-26** | 1089 testes passando | Fases 1-4 aplicadas (commit c872d5b) e Fase 5 concluída — M9/M10/H7 resolvidos
+> Gerado em 2026-09-22 | ~18.300 linhas Python
+> **Pendente em 2026-09-26** — apenas itens ainda nao resolvidos.
+> O que foi concluido (Fases 1-4, M9/M10/H7, Fase 5, correcao do bug
+> `delete_user`) foi removido deste arquivo; historico em `git log`.
 
 ---
 
-## CRITICOS (6)
-
-| # | Tipo | Local | Problema |
-|---|------|-------|----------|
-| C1 | Seguranca | `auth.py:94` | Senhas com SHA-256 (brute-force em GPUs). Usar bcrypt/argon2 |
-| C2 | Seguranca | `auth.py:34-37` | JWT secret muda a cada restart — tokens de sessoes anteriores invalidados |
-| C3 | Seguranca | `web_app.py:2816` | Senhas N0 (`@dmin01BR`) impressas em plaintext no console |
-| C4 | Bug | `web_app.py:973` | `_persist_chain(cpf)` nunca funciona — cpf vem cru do path param mas chains usa cpf_clean como key. **Cadeias PF nunca persistem no SQLite** |
-| C5 | Bug | `chain.py:439` | `load_from_file` gera novo signer — todas assinaturas ECDSA quebram ao recarregar |
-| C6 | Race | `chain.py` (todas) | `add_event()` sem lock — duas threads concorrentes criam fork (dois blocos com mesmo previous_hash) |
-
----
-
-## ALTOS (8)
-
-| # | Tipo | Local | Problema |
-|---|------|-------|----------|
-| H1 | Seguranca | `web_app.py` rotas GET | ~50 rotas GET sem autenticacao — expoem CPFs, nomes, propriedades |
-| H2 | Seguranca | `web_app.py:2202` | `criar_autoridade` so checa `get_current_user`, nao `require_admin` — privilege escalation |
-| H3 | Seguranca | `auth.py:84` | `_users_db` dict global sem thread safety — race condition em `create_user` |
-| H4 | Bug | `web_app.py:1007` | `add_nascimento` NAO chama `_persist_chain` — genesis nunca salva no SQLite |
-| H5 | Bug | `web_app.py:2822` | `_seed_autoridades_n0` logica invertida — `if uid in au_chains or get_user(uid) is None: continue` |
-| H6 | Bug | `events.py:26-27` | Enum `DISVINC_PATerna` com case misto vs `DISVINC_MATERNA` — propaga bugs |
-| H7 | Inconsistencia | `events.py:42-45` | `_valida_cpf` so checa len=11 — aceita `"00000000000"`, `"11111111111"` | ✅ **RESOLVIDO** — checksum oficial de CPF/CNPJ em PF/IM/MO/CO (`tests/test_validacao.py`) |
-| H8 | Seguranca | `web_app.py:1745+` | 7 rotas recebem `req: dict` sem validacao Pydantic — injection surface |
-
----
-
-## MEDIOS (12)
+## MEDIOS (4)
 
 | # | Tipo | Problema |
 |---|------|----------|
-| M1 | Performance | PoW em `add_event()` bloqueia event loop do asyncio (usar `run_in_executor`) |
 | M2 | Performance | Serializa cadeia inteira (O(n)) a cada evento persistido |
 | M3 | Performance | Nenhum lock nos dicts globais (chains, im_chains, cross-managers) |
-| M4 | Codigo duplicado | Check obito copy-paste 10x nos handlers PF |
-| M5 | Codigo duplicado | 4 padroes de persistencia diferentes (_persist_chain, _persist_imovel, _persist_veiculo, _save_chain_to_db) |
-| M6 | Anti-padrao | `__import__("re")` usado 5x — `re` ja importado no topo |
-| M7 | Anti-padrao | `import hashlib` dentro de corpo de funcao (2x) |
-| M8 | Anti-padrao | `@app.on_event("startup")` deprecated — usar `lifespan` |
-| M9 | Validacao | Nascimento valida UF+cidade, mas casamento/divorcio/obito nao validam | ✅ **RESOLVIDO** — `_valida_uf`/`_valida_data` em todas as factories PF + contrato de payload em `add_event` das 6 chains de dominio |
-| M10 | Validacao | Nenhuma validacao de formato em datas (DD/MM/AAAA) | ✅ **RESOLVIDO** — factories + `_valida_contrato` (datas DD/MM/AAAA) em `add_event` das 6 chains de dominio |
-| M11 | Validacao | Nenhuma validacao de UF (27 valores oficiais) em campos de UF |
-| M12 | Hardcoded | Porta 8000, token expiry 24h, difficulty 2, labels de signer — nada configuravel via env |
+| M5 | Codigo duplicado | 5 padroes de persistencia diferentes (_persist_chain, _persist_imovel, _persist_veiculo, _persist_autoridade, _save_chain_to_db) |
+| L2 | Anti-padrao | ~2.900 linhas de web_app.py em arquivo unico — deveria ser modulos |
+
+> M1, M4, M6-M8, M9-M12, L1, L3-L10 e C1-C6/H1-H8: resolvidos.
 
 ---
 
-## BAIXOS (10)
+## BUGS DESCOBERTOS DURANTE A CORRECAO
 
-| # | Tipo | Problema |
-|---|------|----------|
-| L1 | Anti-padrao | `sys.path.insert(0, ...)` no web_app.py |
-| L2 | Anti-padrao | 2859 linhas em arquivo unico — deveria ser modulos |
-| L3 | Naming | `getirmaos` (camelCase) vs `get_filhos`, `get_pais` (snake_case) |
-| L4 | Naming | `CONVERSao` em vez de `CONVERSAO` nos eventos EM |
-| L5 | Naming | `DESDE` em vez de `OBITO` duplicado nos eventos AN |
-| L6 | Naming | Cross-chain: `CrossChainManager` (IM) vs `CrossChainXX` (outros) |
-| L7 | Pydantic | `list` sem tipo, `dict` sem tipo, sem `gt=0` em valores monetarios |
-| L8 | Rota | Falta `/validate` para CO, EM, AC, AN, AU |
-| L9 | Rota | Falta link `/api/mo` na landing page |
-| L10 | Anti-padrao | `model_config` com `extra="ignore"` so em alguns modulos (inconsistente) |
-
----
-
-## TESTES — Gaps
-
-| Prioridade | Gap |
-|------------|-----|
-| **Critica** | `CrossChainEM` e `CrossChainAC` — zero cobertura | ✅ `TestCrossChainEM` (`test_em.py`) e `TestCrossChainAC` (`test_ac.py`) |
-| **Critica** | `geografia_br.py` — importado por todas factories, zero testes | ✅ `tests/test_geografia.py` — 34 testes, 96% de cobertura |
-| **Alta** | Nenhum teste de API para rotas IM, CO, EM, AC, AN (eventos) | 🔶 **PARCIAL** — EM/AC/AN completos em `test_api.py` (42 testes), MO coberto em `test_fixes.py`; faltam IM e CO |
-| **Alta** | Nenhum teste `save/load` round-trip para VesselChain, AircraftChain, AnimalChain | ✅ `Test*ChainPersistencia` em `test_em/test_ac/test_an` (blocos, assinaturas pós-load/C5, índice de eventos) |
-| **Alta** | Nenhum teste de integracao cross-domain (PF+MO linkado, autoridade gateando criacao) | ✅ `TestCrossVinculo` em `test_fixes.py` (PF+MO via API) e cross-chains EM/AC/AN nos testes de domínio |
-| **Media** | Falta `validate()` e `verify_all_signatures()` nos testes de domain chains | ✅ round-trips EM/AC/AN chamam ambas pós-load; MO/IM/PF já cobriam `validate()` |
-| **Media** | `test_api.py` so testa happy paths — nenhum payload invalido, CPF malformado | ✅ 401/403/404/409, tipo/payload inválido, duplicados e date malformada (EM/AC/AN) |
-| **Media** | Sem `@pytest.mark.parametrize` para padroes de validacao repetitivos | ✅ `tests/test_validacao.py` parametriza CPF/CNPJ válidos e inválidos nas 4 implementações |
+| # | Tipo | Local | Problema |
+|---|------|-------|----------|
+| N1 | Bug | `auth.py delete_user` | Sem DB, checava `username in _users_db` APÓS deletar — sempre retornava False. **Corrigido** (retorno unificado memória/DB), mantido aqui como registro do padrão: funções de auth com retorno dependente da ordem memória/DB precisam de revisão |
+| N2 | Bug latente | `tests/test_fixes.py` | API aceitava `MUDANCA_COR` com campo `cor`, mas o estado consome `cor_nova` — evento nunca alterava a cor. Corrigido no teste; revisar outros payloads de admin contra os contratos de `get_estado_atual` |
 
 ---
 
@@ -92,7 +37,7 @@
 | F2 | Rate limiting | Proteger `/api/auth/login` e endpoints de escrita |
 | F3 | Refresh tokens | Substituir token unico de 24h por access+refresh token |
 | F4 | Password complexity | Exigir min 8 chars, maiuscula, numero, especial |
-| F5 | CPF/CNPJ checksum | Validacao completa (digitos verificadores) |
+| F5 | CPF/CNPJ checksum | ~~Validacao completa (digitos verificadores)~~ **FEITO (H7)** |
 | F6 | Cross-chain integrity | Validar que referencias cruzadas nao ficam orfas ao deletar entidade |
 | F7 | Graph rebuild endpoint | `POST /api/pf/graph/rebuild` para reconstruir grafo a partir da cadeia |
 | F8 | Health check | `GET /health` com status de DB, cadeias, memoria |
@@ -103,42 +48,23 @@
 
 ---
 
-## Resumo
+## ORDEM RECOMENDADA RESTANTE
 
-| Severidade | Qtd |
-|-----------|-----|
-| Criticos | 6 |
-| Altos | 8 |
-| Medios | 12 |
-| Baixos | 10 |
-| **Total bugs/problemas** | **36** |
-| Gaps de teste | 8 |
-| Sugestoes novas | 12 |
-
-### Status da correção (2026-09-26)
-
-| Grupo | Status |
-|-------|--------|
-| Fases 1-4 (C1-C6, H1-H8, M1-M8, M11-M12, L1-L10) | ✅ aplicadas e verificadas — commit `c872d5b` |
-| M9/M10/H7 | ✅ resolvidos — validação por contrato em `add_event` das 6 chains + checksum CPF/CNPJ |
-| Fase 5 (itens 5.1-5.6) | ✅ concluída — 130 testes novos |
-| Pendências restantes | 5.7 (teste de restart/persistência do JWT secret) e API de IM/CO |
-
-Suite atual: **1089 passed** (~1min50s). O bug latente exposto pela validação (MO `MUDANCA_COR` lia `cor` mas o estado consome `cor_nova`) foi corrigido em `tests/test_fixes.py`.
+1. **M3** — Locks nos dicts globais de `web_app.py` (escritas concorrentes via API)
+2. **M5** — Unificar `_persist_*` / `_save_chain_to_db` em um helper por dominio
+3. **M2** — Persistencia incremental (evitar serializar a cadeia inteira por evento)
+4. **L2** — Extrair rotas de `web_app.py` para routers FastAPI por dominio
+5. **F2/F3** — Rate limiting + refresh tokens (seguranca de autenticacao)
 
 ---
 
-## Ordem de Correcao Recomendada
+## Resumo atual
 
-1. **C4** — PF chains nao persistem no SQLite (perda de dados)
-2. **C6** — Race condition em `add_event()` (fork de cadeia)
-3. **C1** — SHA-256 → bcrypt/argon2 (vulnerabilidade de senhas)
-4. **H4** — Genesis nao salva no SQLite
-5. **C2** — JWT secret fixo (nao muda por restart)
-6. **H2** — Privilege escalation em criar autoridade
-7. **H7** — Validacao completa de CPF/CNPJ
-8. **H8** — Pydantic validation em rotas de escrita
-9. **M1** — PoW assincrono (run_in_executor)
-10. **M4-M5** — Refatorar duplicacao de codigo
+| Grupo | Qtd pendente |
+|-------|--------------|
+| Medios/baixos de performance e arquitetura | 4 (M2, M3, M5, L2) |
+| Bugs novos registrados (ja corrigidos, a documentar) | 2 (N1, N2) |
+| Features novas | 11 (F1-F4, F6-F12) |
 
-> **Concluído (2026-09-26):** itens 1-10 executados e validados (1089 testes). Pendências menores: teste 5.7 (JWT secret restart) e cobertura de API para IM/CO.
+Suite: **1126 passed** (~2min20s). Cobertura total: **75%** —
+menores: `blockchain_co/chain.py` (60%), `web_app.py` (56%).
