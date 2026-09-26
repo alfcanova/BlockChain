@@ -3,8 +3,8 @@
 > Gerado em 2026-09-22 | ~18.300 linhas Python
 > **Pendente em 2026-09-26** — apenas itens ainda nao resolvidos.
 > O que foi concluido (Fases 1-4, M9/M10/H7, Fase 5, M2/M3/M5,
-> bugs N1-N6, auditoria N2 dos admins e features F2/F3/F4/F6/F8/
-> F9/F10/F11/F12) foi removido deste arquivo; historico em `git log`.
+> bugs N1-N6, auditoria N2 dos admins e features F2/F3/F4/F6/F7/
+> F8/F9/F10/F11/F12) foi removido deste arquivo; historico em `git log`.
 
 ---
 
@@ -21,14 +21,13 @@
 | # | Funcionalidade | Descricao |
 |---|----------------|-----------|
 | F1 | Docker/docker-compose | Containerizar app + SQLite para deploy rapido |
-| F7 | Graph rebuild endpoint | `POST /api/pf/graph/rebuild` para reconstruir grafo a partir da cadeia |
 
 ---
 
 ## ORDEM RECOMENDADA RESTANTE
 
 1. **L2** — Extrair rotas de `web_app.py` para routers FastAPI por dominio
-2. **F7** — Graph rebuild endpoint
+2. **F1** — Docker/docker-compose
 
 ---
 
@@ -37,7 +36,7 @@
 | Grupo | Qtd pendente |
 |-------|--------------|
 | Baixos de arquitetura | 1 (L2) |
-| Features novas | 2 (F1, F7) |
+| Features novas | 1 (F1) |
 
-Suite: **1166 passed** (~2min30s). Cobertura total: **75%** —
+Suite: **1171 passed** (~2min30s). Cobertura total: **75%** —
 menores: `blockchain_co/chain.py` (60%), `web_app.py` (56%).
