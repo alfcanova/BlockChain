@@ -23,24 +23,6 @@ atualizar os imports junto.
 
 ---
 
-## RESOLVIDO: seguranca de autenticacao (P5-P7)
-
-- **P5/F2** — Rate limiting: middleware com janela fixa de 60s por IP
-  (`/api/auth/login` 10/min; escritas 120/min por IP+rota), 429 com
-  mensagem; configuravel via `RATE_LIMIT_ENABLED/LOGIN/WRITE`.
-- **P6/F3** — Refresh tokens: login emite access+refresh (`typ`/`jti`),
-  `POST /api/auth/refresh` renova a sessao e `POST /api/auth/logout`
-  revoga por usuario; refresh nao serve como access.
-- **P7/F4** — Complexidade de senha em `create_user` (min 8 chars com
-  maiuscula/minuscula/numero/especial); 400 na API; seeds internos com
-  bypass `_internal`; senha de autoridade gerada satisfaz a politica.
-
-Tambem resolvidos nesta rodada: **F8** (health com DB+memoria),
-**F9** (`/api/metrics` Prometheus), **F10** (migracoes versionadas
-`schema_version`), **F11** (audit log + `GET /api/audit`).
-
----
-
 ## PENDENTE: features (resumo)
 
 F1 Docker/compose · F6 integridade cross-chain (orfos) ·
