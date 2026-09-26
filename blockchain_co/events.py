@@ -60,15 +60,43 @@ class CompanyEventType(str, Enum):
 
 
 def _valida_cnpj(cnpj: str) -> bool:
-    """Validação básica de CNPJ (14 dígitos)."""
+    """Validação completa de CNPJ: 14 dígitos + dígitos verificadores (H7)."""
     cnpj_clean = re.sub(r"\D", "", cnpj)
-    return len(cnpj_clean) == 14
+    if len(cnpj_clean) != 14:
+        return False
+    if cnpj_clean == cnpj_clean[0] * 14:
+        return False
+    weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    sum1 = sum(int(cnpj_clean[i]) * weights1[i] for i in range(12))
+    d1 = 0 if sum1 % 11 < 2 else 11 - (sum1 % 11)
+    if int(cnpj_clean[12]) != d1:
+        return False
+    sum2 = sum(int(cnpj_clean[i]) * weights2[i] for i in range(13))
+    d2 = 0 if sum2 % 11 < 2 else 11 - (sum2 % 11)
+    return int(cnpj_clean[13]) == d2
 
 
 def _valida_cpf(cpf: str) -> bool:
-    """Validação básica de CPF (11 dígitos)."""
+    """Validação completa de CPF: 11 dígitos + dígitos verificadores (H7).
+
+    Algoritmo oficial: pesos 10..2 (1º dígito) e 11..2 (2º dígito);
+    resto < 2 → 0; senão 11 - resto.
+    """
     cpf_clean = re.sub(r"\D", "", cpf)
-    return len(cpf_clean) == 11
+    if len(cpf_clean) != 11:
+        return False
+    if cpf_clean == cpf_clean[0] * 11:
+        return False
+    sum1 = sum(int(cpf_clean[i]) * (10 - i) for i in range(9))
+    resto1 = sum1 % 11
+    d1 = 0 if resto1 < 2 else 11 - resto1
+    if int(cpf_clean[9]) != d1:
+        return False
+    sum2 = sum(int(cpf_clean[i]) * (11 - i) for i in range(10))
+    resto2 = sum2 % 11
+    d2 = 0 if resto2 < 2 else 11 - resto2
+    return int(cpf_clean[10]) == d2
 
 
 def _valida_data(data: str) -> bool:

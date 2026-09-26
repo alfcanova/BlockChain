@@ -121,8 +121,17 @@ _ORGAOS = ["DETRAN-SP", "DETRAN-RJ", "DETRAN-MG", "CET", "Polícia Rodoviária",
 # ── Geradores ──────────────────────────────────────────────────────────
 
 def _cpf_aleatorio() -> str:
-    """Gera CPF com 11 dígitos."""
-    return "".join(random.choices(string.digits, k=11))
+    """Gera CPF aleatorio com digitos verificadores validos."""
+    while True:
+        cpf = [random.randint(0, 9) for _ in range(9)]
+        d1 = sum((10 - i) * cpf[i] for i in range(9)) % 11
+        d1 = 0 if d1 < 2 else 11 - d1
+        d2 = (sum((11 - i) * cpf[i] for i in range(9)) + 2 * d1) % 11
+        d2 = 0 if d2 < 2 else 11 - d2
+        cpf.extend([d1, d2])
+        s = "".join(str(d) for d in cpf)
+        if len(set(cpf)) > 1:
+            return s
 
 def _nome_completo(sexo: str = None) -> str:
     if sexo is None:

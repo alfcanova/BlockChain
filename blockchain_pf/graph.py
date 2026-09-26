@@ -253,7 +253,7 @@ class RelationshipGraph:
                     result.append(node)
         return result
 
-    def getirmaos(self, cpf: str) -> list[Node]:
+    def get_irmaos(self, cpf: str) -> list[Node]:
         """Retorna os irmaos de uma PF (mesmos pais)."""
         cpf = cpf.replace(".", "").replace("-", "")
         pais = self.get_pais(cpf)
@@ -264,6 +264,9 @@ class RelationshipGraph:
                 if filho.cpf != cpf and filho not in irmaos:
                     irmaos.append(filho)
         return irmaos
+
+    # Alias retrocompativel com o nome legado (L3)
+    getirmaos = get_irmaos
 
     def get_family_network(self, cpf: str, depth: int = 2) -> dict[str, Any]:
         """

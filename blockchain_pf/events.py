@@ -24,7 +24,7 @@ class EventType(str, Enum):
     OBITO          = "OBITO"
     ALTERACAO_NOME = "ALTERACAO_NOME"
     DISVINC_MATERNA = "DISVINC_MATERNA"
-    DISVINC_PATerna = "DISVINC_PATerna"
+    DISVINC_PATERNA = "DISVINC_PATERNA"
     VACINACAO      = "VACINACAO"
     PROTESE        = "PROTESE"
     # Documentos pessoais
@@ -34,15 +34,50 @@ class EventType(str, Enum):
 
     # Alias para manter compatibilidade
     DISVINCULACAO_MATERNA = "DISVINC_MATERNA"
-    DISVINCULACAO_PATerna = "DISVINC_PATerna"
+    DISVINCULACAO_PATERNA = "DISVINC_PATERNA"
+    # Alias retrocompativeis com o nome legado de case misto (H6)
+    DISVINC_PATerna = "DISVINC_PATERNA"
+    DISVINCULACAO_PATerna = "DISVINC_PATERNA"
+
+
+# Mapeamento de valores legados gravados em cadeias antigas (H6)
+LEGACY_EVENT_TYPES = {
+    "DISVINC_PATerna": "DISVINC_PATERNA",
+}
+
+
+def normalize_event_type(event_type: str) -> str:
+    """Converte valores legados para o nome canônico (ex: DISVINC_PATerna)."""
+    return LEGACY_EVENT_TYPES.get(event_type, event_type)
 
 
 # ── Validadores ────────────────────────────────────────────────────────
 
 def _valida_cpf(cpf: str) -> bool:
-    """Validação básica de CPF (11 dígitos)."""
+    """Validação completa de CPF: 11 dígitos + dígitos verificadores (H7).
+
+    Algoritmo oficial:
+      1º dígito: soma dos 9 primeiros digitos com pesos 10..2;
+                 resto = soma % 11; d = 0 se resto < 2, senão 11 - resto.
+      2º dígito: soma dos 10 primeiros digitos com pesos 11..2;
+                 mesma regra.
+    """
     cpf_clean = re.sub(r"\D", "", cpf)
-    return len(cpf_clean) == 11
+    if len(cpf_clean) != 11:
+        return False
+    if cpf_clean == cpf_clean[0] * 11:  # todos os digitos iguais
+        return False
+    # Primeiro digito verificador
+    sum1 = sum(int(cpf_clean[i]) * (10 - i) for i in range(9))
+    resto1 = sum1 % 11
+    d1 = 0 if resto1 < 2 else 11 - resto1
+    if int(cpf_clean[9]) != d1:
+        return False
+    # Segundo digito verificador
+    sum2 = sum(int(cpf_clean[i]) * (11 - i) for i in range(10))
+    resto2 = sum2 % 11
+    d2 = 0 if resto2 < 2 else 11 - resto2
+    return int(cpf_clean[10]) == d2
 
 def _valida_data(data: str) -> bool:
     """Valida formato DD/MM/AAAA."""
@@ -181,6 +216,8 @@ class EventFactory:
         }
         if not _valida_data(data_casamento):
             raise ValueError(f"Data inválida: {data_casamento}")
+        if uf and not _valida_uf(uf):
+            raise ValueError(f"UF inválida: {uf}")
         return dados
 
     @staticmethod
@@ -232,6 +269,8 @@ class EventFactory:
         }
         if not _valida_data(data_obito):
             raise ValueError(f"Data inválida: {data_obito}")
+        if not _valida_uf(uf_obito):
+            raise ValueError(f"UF inválida: {uf_obito}")
         return dados
 
     @staticmethod
@@ -284,7 +323,7 @@ class EventFactory:
     ) -> dict[str, Any]:
         """Evento de DESLIGAMENTO DE VÍNCULO PATerno."""
         dados = {
-            "evento_tipo": EventType.DISVINC_PATerna.value,
+            "evento_tipo": EventType.DISVINC_PATERNA.value,
             "cpf": re.sub(r"\D", "", cpf),
             "data_disvinculacao": data_disvinculacao,
             "motivo": motivo.strip(),
@@ -341,6 +380,8 @@ class EventFactory:
             raise ValueError(f"Data inválida (DD/MM/AAAA): {data_vacinacao}")
         if not nome_vacina.strip():
             raise ValueError("Nome da vacina é obrigatório.")
+        if uf and not _valida_uf(uf):
+            raise ValueError(f"UF inválida: {uf}")
         return dados
 
     @staticmethod
@@ -397,6 +438,8 @@ class EventFactory:
             raise ValueError(f"Data inválida (DD/MM/AAAA): {data_implantacao}")
         if not nome_protese.strip():
             raise ValueError("Nome da prótese é obrigatório.")
+        if uf and not _valida_uf(uf):
+            raise ValueError(f"UF inválida: {uf}")
         if data_remocao and not _valida_data(data_remocao):
             raise ValueError(f"Data de remoção inválida (DD/MM/AAAA): {data_remocao}")
         return dados
@@ -458,6 +501,10 @@ class EventFactory:
             raise ValueError(f"Data de emissão inválida (DD/MM/AAAA): {data_emissao}")
         if not _valida_data(data_validade):
             raise ValueError(f"Data de validade inválida (DD/MM/AAAA): {data_validade}")
+        if data_exame_medico and not _valida_data(data_exame_medico):
+            raise ValueError(f"Data do exame médico inválida (DD/MM/AAAA): {data_exame_medico}")
+        if uf_emissao and not _valida_uf(uf_emissao):
+            raise ValueError(f"UF inválida: {uf_emissao}")
         return dados
 
     # ── Título de Eleitor ──────────────────────────────────────────────
@@ -514,6 +561,8 @@ class EventFactory:
             raise ValueError("Zona eleitoral é obrigatória.")
         if not secao_eleitoral.strip():
             raise ValueError("Seção eleitoral é obrigatória.")
+        if not _valida_uf(uf):
+            raise ValueError(f"UF inválida: {uf}")
         return dados
 
     # ── Escolaridade ───────────────────────────────────────────────────
@@ -588,7 +637,7 @@ class ChainProtector:
         EventType.DIVORCIO,
         EventType.ADOCAO,
         EventType.DISVINC_MATERNA,
-        EventType.DISVINC_PATerna,
+        EventType.DISVINC_PATERNA,
     }
 
     @staticmethod
@@ -597,7 +646,7 @@ class ChainProtector:
         if not ja_tem_obito:
             return True
         try:
-            tipo = EventType(tipo_evento)
+            tipo = EventType(normalize_event_type(tipo_evento))
             return tipo not in ChainProtector.BLOQUEADOS_APOS_OBITO
         except ValueError:
             return True  # Tipo desconhecido — permite

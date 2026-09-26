@@ -43,7 +43,7 @@ def demo_co():
     # 1. Constituição
     linha("1. CONSTITUICAO — Bloco Genesis")
     dados = CompanyEventFactory.constituicao(
-        cnpj="12345678000190",
+        cnpj="12345678000195",
         razao_social="TechSolutions Inovacao LTDA",
         nome_fantasia="TechSol",
         data_constituicao="01/01/2020",
@@ -53,7 +53,7 @@ def demo_co():
         natureza_juridica="2062",
         atividade_principal="6201501",
         endereco_sede={"logradouro": "Av. Paulista, 1000", "cidade": "Sao Paulo", "uf": "SP"},
-        responsavel_cpf="12345678901",
+        responsavel_cpf="12345678909",
         responsavel_nome="Joao Silva",
         uf="SP",
         cidade="Sao Paulo",
@@ -65,7 +65,7 @@ def demo_co():
     # 2. Adição de Sócio
     linha("2. ADICAO DE SOCIO")
     dados_socio = CompanyEventFactory.adicao_socio(
-        cnpj="12345678000190",
+        cnpj="12345678000195",
         socio_cpf="98765432100",
         socio_nome="Maria Santos",
         participacao=30.0,
@@ -78,7 +78,7 @@ def demo_co():
     # 3. Mudança de Capital
     linha("3. MUDANCA DE CAPITAL")
     dados_capital = CompanyEventFactory.mudanca_capital(
-        cnpj="12345678000190",
+        cnpj="12345678000195",
         capital_anterior=50000.0,
         capital_novo=150000.0,
         data_mudanca="01/01/2023",
@@ -90,7 +90,7 @@ def demo_co():
     # 4. Certidão Negativa
     linha("4. CERTIDAO NEGATIVA")
     dados_cert = CompanyEventFactory.certidao(
-        cnpj="12345678000190",
+        cnpj="12345678000195",
         tipo_certidao="NEGATIVA",
         numero="CND-2024-001234",
         data_emissao="01/03/2024",
@@ -102,7 +102,7 @@ def demo_co():
     # 5. Garantia
     linha("5. GARANTIA BANCARIA")
     dados_garantia = CompanyEventFactory.garantia(
-        cnpj="12345678000190",
+        cnpj="12345678000195",
         credor_nome="Banco do Brasil",
         credor_cnpj="00000000000191",
         valor_garantia=100000.0,
@@ -129,8 +129,8 @@ def demo_co():
     print(f"  Socios: {len(estado['socios'])}")
     print(f"  Capital: R$ {estado['capital_social']:,.2f}")
 
-    chain.save_to_file("demo_output/co_12345678000190.json")
-    print(f"\n  Cadeia salva em demo_output/co_12345678000190.json")
+    chain.save_to_file("demo_output/co_12345678000195.json")
+    print(f"\n  Cadeia salva em demo_output/co_12345678000195.json")
     return chain
 
 
@@ -179,7 +179,7 @@ def demo_em():
         registro_nr="NR-2024-001",
         comprador_cpf="98765432100",
         comprador_nome="Pedro Oliveira",
-        vendedor_cpf="12345678901",
+        vendedor_cpf="12345678909",
         vendedor_nome="Joao Silva",
         valor_transacao=250000.0,
         data_transacao="01/03/2024",
@@ -218,7 +218,7 @@ def demo_em():
     dados_seg = VesselEventFactory.seguro(
         registro_nr="NR-2024-001",
         seguradora_nome="Porto Seguro",
-        seguradora_cnpj="61198164000123",
+        seguradora_cnpj="61198164000160",
         apolice_numero="AP-2024-5678",
         data_inicio="01/01/2024",
         data_fim="01/01/2025",
@@ -313,7 +313,7 @@ def demo_ac():
         matricula="PT-ABC",
         comprador_cpf="98765432100",
         comprador_nome="Carlos Aviador",
-        vendedor_cpf="12345678901",
+        vendedor_cpf="12345678909",
         vendedor_nome="Joao Silva",
         valor_transacao=800000.0,
         data_transacao="01/09/2024",
@@ -326,7 +326,7 @@ def demo_ac():
     dados_seg = AircraftEventFactory.seguro(
         matricula="PT-ABC",
         seguradora_nome="Tokio Marine",
-        seguradora_cnpj="61198164000123",
+        seguradora_cnpj="61198164000160",
         apolice_numero="AC-2024-9999",
         data_inicio="01/09/2024",
         data_fim="01/09/2025",
@@ -372,11 +372,11 @@ def demo_an():
         data_nascimento="15/03/2023",
         cor="Dourado",
         peso_kg=3.5,
-        proprietario_cpf="12345678901",
+        proprietario_cpf="12345678909",
         proprietario_nome="Joao Silva",
         pai_nome="Champion Golden Star",
         mae_nome="Princess Luna",
-        microchip="900123456789012",
+        microchip="900123456789092",
         cidade="Sao Paulo",
         uf="SP",
     )
@@ -432,7 +432,7 @@ def demo_an():
         nome="Rex",
         comprador_cpf="98765432100",
         comprador_nome="Maria Santos",
-        vendedor_cpf="12345678901",
+        vendedor_cpf="12345678909",
         vendedor_nome="Joao Silva",
         valor_transacao=3500.0,
         data_transacao="01/01/2024",
@@ -500,7 +500,7 @@ def main():
     # Resumo
     linha("RESUMO FINAL")
     db = Database()
-    ids = {"CO": "12345678000190", "EM": "NR-2024-001", "AC": "PT-ABC", "AN": "rex"}
+    ids = {"CO": "12345678000195", "EM": "NR-2024-001", "AC": "PT-ABC", "AN": "rex"}
     for name, chain in chains.items():
         ok, msg = chain.validate(require_signatures=True)
         signed = sum(1 for b in chain.chain if b.has_signature())

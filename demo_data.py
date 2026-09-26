@@ -112,11 +112,11 @@ CORES_VEICULOS = [
 COMBUSTIVEIS = ["GASOLINA", "ETANOL", "FLEX", "DIESEL", "ELETRICO", "HIBRIDO"]
 
 FABRICANTES = [
-    ("Volkswagen do Brasil", "61198164000123"),
-    ("General Motors do Brasil", "61439835000103"),
+    ("Volkswagen do Brasil", "61198164000160"),
+    ("General Motors do Brasil", "61439835000137"),
     ("FCA Fiat", "33000167000101"),
     ("Hyundai Motor Brasil", "02558157000162"),
-    ("Toyota do Brasil", "51023583000110"),
+    ("Toyota do Brasil", "51023583000107"),
     ("Stellantis Brasil", "33592510000154"),
 ]
 
@@ -181,7 +181,7 @@ def rand_cpf() -> str:
         cpf = [random.randint(0, 9) for _ in range(9)]
         d1 = sum((10 - i) * cpf[i] for i in range(9)) % 11
         d1 = 0 if d1 < 2 else 11 - d1
-        d2 = sum((11 - i) * cpf[i] for i in range(9)) % 11
+        d2 = (sum((11 - i) * cpf[i] for i in range(9)) + 2 * d1) % 11
         d2 = 0 if d2 < 2 else 11 - d2
         cpf.extend([d1, d2])
         s = "".join(str(d) for d in cpf)

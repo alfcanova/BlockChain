@@ -103,10 +103,33 @@ _NOMES_ANIM = ["Rex", "Luna", "Max", "Bella", "Thor", "Mel", "Nike", "Caramelo",
 
 
 def _cpf():
-    return "".join(random.choices(string.digits, k=11))
+    """Gera CPF aleatorio com digitos verificadores validos."""
+    while True:
+        cpf = [random.randint(0, 9) for _ in range(9)]
+        d1 = sum((10 - i) * cpf[i] for i in range(9)) % 11
+        d1 = 0 if d1 < 2 else 11 - d1
+        d2 = (sum((11 - i) * cpf[i] for i in range(9)) + 2 * d1) % 11
+        d2 = 0 if d2 < 2 else 11 - d2
+        cpf.extend([d1, d2])
+        s = "".join(str(d) for d in cpf)
+        if len(set(cpf)) > 1:
+            return s
 
 def _cnpj():
-    return "".join(random.choices(string.digits, k=14))
+    """Gera CNPJ aleatorio com digitos verificadores validos."""
+    p1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    p2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    while True:
+        c = [random.randint(0, 9) for _ in range(12)]
+        d1 = sum(x * y for x, y in zip(c, p1)) % 11
+        d1 = 0 if d1 < 2 else 11 - d1
+        c.append(d1)
+        d2 = sum(x * y for x, y in zip(c, p2)) % 11
+        d2 = 0 if d2 < 2 else 11 - d2
+        c.append(d2)
+        s = "".join(str(d) for d in c)
+        if len(set(c)) > 1:
+            return s
 
 def _nome(sexo=None):
     if sexo is None:

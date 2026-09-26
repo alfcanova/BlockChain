@@ -21,7 +21,6 @@ env/
 
 # Coverage
 .coverage
-htmlcov/
 coverage.xml
 .pytest_cache/
 
@@ -33,6 +32,9 @@ coverage.xml
 # Demo output (generated)
 demo_output/
 
+# Testes locais (não versionados; use 'git add -f tests/...' para forçar)
+tests/
+
 # Temporary files
 *.tmp
 *.bak
@@ -40,3 +42,4 @@ demo_output/
 # OS
 Thumbs.db
 .DS_Store
+.jwt_secret

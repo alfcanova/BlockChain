@@ -13,7 +13,12 @@ Suporta referências cruzadas com blockchain_pf (pessoas físicas).
 
 from .events import PropertyEventType, PropertyEventFactory, PropertyChainProtector
 from .chain import PropertyChain
-from .cross_chain import CrossChainManager, CrossReference
+from .cross_chain import (
+    CrossChainIM,
+    IMCrossReference,
+    CrossChainManager,   # alias retrocompativel
+    CrossReference,      # alias retrocompativel
+)
 
 __version__ = "1.0.0"
 __all__ = [
@@ -21,6 +26,8 @@ __all__ = [
     "PropertyEventFactory",
     "PropertyChainProtector",
     "PropertyChain",
+    "CrossChainIM",
+    "IMCrossReference",
     "CrossChainManager",
     "CrossReference",
 ]

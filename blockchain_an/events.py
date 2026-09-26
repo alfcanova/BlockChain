@@ -34,7 +34,6 @@ class AnimalEventType(str, Enum):
     CIRURGIA = "CIRURGIA"  # Cirurgia veterinária
     EXAME = "EXAME"  # Exame clínico/laboratorial
     DOENCA = "DOENCA"  # Registro de doença
-    DESDE = "DESDE"  # Registro de óbito do animal
 
     # ── Identificação ────────────────────────────────────────────────
     MICROCHIP = "MICROCHIP"  # Implantação de microchip

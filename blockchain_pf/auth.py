@@ -6,7 +6,7 @@ Gerencia:
   - Usuarios (em memoria para demo)
   - Geracao de tokens JWT
   - Verificacao de tokens
-  - Hash de senhas com bcrypt-like (SHA-256 + salt)
+  - Hash de senhas com bcrypt (com retrocompatibilidade p/ legado SHA-256)
   - Dependencia FastAPI para protecao de endpoints
 
 Uso:
@@ -19,10 +19,12 @@ import hmac
 import json
 import os
 import secrets
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+import bcrypt
 import jwt
 
 from fastapi import Depends, HTTPException, status
@@ -31,12 +33,38 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # ── Configuracao ───────────────────────────────────────────────────────
 
-SECRET_KEY = os.environ.get(
-    "JWT_SECRET_KEY",
-    "blockchain-pf-secret-key-change-in-production-" + secrets.token_hex(16),
-)
+_SECRET_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".jwt_secret")
+
+
+def _load_or_create_secret() -> str:
+    """
+    Carrega o segredo JWT de forma persistente:
+      1. JWT_SECRET_KEY (env) tem prioridade;
+      2. senao, le/cria o arquivo `.jwt_secret` na raiz do projeto;
+      3. se o arquivo nao puder ser escrito, gera um efemero (ultimo recurso).
+    """
+    env_key = os.environ.get("JWT_SECRET_KEY")
+    if env_key:
+        return env_key
+    try:
+        if os.path.exists(_SECRET_FILE):
+            with open(_SECRET_FILE, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+            if content:
+                return content
+        key = secrets.token_hex(32)
+        with open(_SECRET_FILE, "w", encoding="utf-8") as f:
+            f.write(key)
+        return key
+    except OSError:
+        # Sem permissao de escrita: cai para um segredo efemero.
+        return secrets.token_hex(32)
+
+
+SECRET_KEY = _load_or_create_secret()
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 horas
+# Expiracao configuravel via env (TOKEN_EXPIRY_HOURS, padrao 24h)
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("TOKEN_EXPIRY_HOURS", "24")) * 60
 
 
 # ── Usuarios (em memoria) ─────────────────────────────────────────────
@@ -83,6 +111,8 @@ class User:
 # Usuarios em memoria (fallback quando nao ha DB)
 _users_db: dict[str, User] = {}
 _db = None  # Database instance (opcional)
+# Lock para operacoes de escrita em _users_db (H3 — thread safety)
+_user_lock = threading.Lock()
 
 
 def set_database(db) -> None:
@@ -92,19 +122,38 @@ def set_database(db) -> None:
 
 
 def _hash_password(password: str, salt: Optional[str] = None) -> str:
-    """Gera hash da senha com salt (SHA-256)."""
+    """Gera hash da senha com salt (bcrypt + salt proprio por usuario)."""
     if salt is None:
         salt = secrets.token_hex(16)
-    h = hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
+    h = bcrypt.hashpw(f"{salt}:{password}".encode(), bcrypt.gensalt()).decode()
     return f"{salt}${h}"
 
 
-def _verify_password(password: str, stored_hash: str) -> bool:
-    """Verifica senha contra hash armazenado."""
+def _is_legacy_hash(stored_hash: str) -> bool:
+    """True se o hash e o formato legado SHA-256 (64 hex)."""
     if "$" not in stored_hash:
         return False
-    salt, _ = stored_hash.split("$", 1)
-    return hmac.compare_digest(_hash_password(password, salt), stored_hash)
+    _, h = stored_hash.split("$", 1)
+    return len(h) == 64
+
+
+def _verify_password(password: str, stored_hash: str) -> bool:
+    """
+    Verifica senha contra hash armazenado.
+
+    Suporta o formato legado (SHA-256, 64 hex) para migracao gradual;
+    novos hashes usam bcrypt.
+    """
+    if "$" not in stored_hash:
+        return False
+    salt, h = stored_hash.split("$", 1)
+    if len(h) == 64:  # legado SHA-256
+        legacy = hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
+        return hmac.compare_digest(legacy, h)
+    try:
+        return bcrypt.checkpw(f"{salt}:{password}".encode(), h.encode())
+    except ValueError:
+        return False
 
 
 # ── Gerenciamento de Usuarios ──────────────────────────────────────────
@@ -119,20 +168,22 @@ def create_user(
     cidade: str = "",
 ) -> User:
     """Cria um novo usuario."""
-    if username in _users_db:
-        raise ValueError(f"Usuario '{username}' ja existe.")
-    user = User(
-        username=username,
-        password_hash=_hash_password(password),
-        role=role,
-        nivel=nivel,
-        escopo=escopo,
-        uf=uf,
-        cidade=cidade,
-    )
-    _users_db[username] = user
-    if _db:
-        _db.save_user(username, user.password_hash, role, True, nivel, escopo, uf, cidade)
+    password_hash = _hash_password(password)
+    with _user_lock:
+        if username in _users_db:
+            raise ValueError(f"Usuario '{username}' ja existe.")
+        user = User(
+            username=username,
+            password_hash=password_hash,
+            role=role,
+            nivel=nivel,
+            escopo=escopo,
+            uf=uf,
+            cidade=cidade,
+        )
+        _users_db[username] = user
+        if _db:
+            _db.save_user(username, user.password_hash, role, True, nivel, escopo, uf, cidade)
     return user
 
 
@@ -151,26 +202,27 @@ def update_user_metadata(
     user = get_user(username)
     if not user:
         return None
-    if nivel is not None:
-        user.nivel = int(nivel)
-    if escopo is not None:
-        user.escopo = escopo
-    if uf is not None:
-        user.uf = uf
-    if cidade is not None:
-        user.cidade = cidade
-    if ativo is not None:
-        user.ativo = bool(ativo)
-    _users_db[username] = user
-    if _db:
-        _db.update_user(
-            username,
-            ativo=user.ativo,
-            nivel=user.nivel,
-            escopo=user.escopo,
-            uf=user.uf,
-            cidade=user.cidade,
-        )
+    with _user_lock:
+        if nivel is not None:
+            user.nivel = int(nivel)
+        if escopo is not None:
+            user.escopo = escopo
+        if uf is not None:
+            user.uf = uf
+        if cidade is not None:
+            user.cidade = cidade
+        if ativo is not None:
+            user.ativo = bool(ativo)
+        _users_db[username] = user
+        if _db:
+            _db.update_user(
+                username,
+                ativo=user.ativo,
+                nivel=user.nivel,
+                escopo=user.escopo,
+                uf=user.uf,
+                cidade=user.cidade,
+            )
     return user
 
 
@@ -186,6 +238,17 @@ def authenticate_user(username: str, password: str) -> Optional[User]:
         return None
     if not _verify_password(password, user.password_hash):
         return None
+    # Re-hash no proximo login: migra hashes legados (SHA-256) para bcrypt.
+    if _is_legacy_hash(user.password_hash):
+        new_hash = _hash_password(password)
+        with _user_lock:
+            user.password_hash = new_hash
+            _users_db[username] = user
+            if _db:
+                _db.save_user(
+                    username, new_hash, user.role, user.ativo,
+                    user.nivel, user.escopo, user.uf, user.cidade,
+                )
     return user
 
 
@@ -216,11 +279,13 @@ def list_users() -> list[dict]:
 
 def delete_user(username: str) -> bool:
     """Remove um usuario."""
-    if username in _users_db:
-        del _users_db[username]
+    with _user_lock:
+        if username in _users_db:
+            del _users_db[username]
     if _db:
         return _db.delete_user(username)
-    return username in _users_db
+    with _user_lock:
+        return username in _users_db
 
 
 # ── Tokens JWT ─────────────────────────────────────────────────────────

@@ -56,9 +56,25 @@ class PropertyEventType(str, Enum):
 # ── Validadores ────────────────────────────────────────────────────────
 
 def _valida_cpf(cpf: str) -> bool:
-    """Validação básica de CPF (11 dígitos)."""
+    """Validação completa de CPF: 11 dígitos + dígitos verificadores (H7).
+
+    Algoritmo oficial: pesos 10..2 (1º dígito) e 11..2 (2º dígito);
+    resto < 2 → 0; senão 11 - resto.
+    """
     cpf_clean = re.sub(r"\D", "", cpf)
-    return len(cpf_clean) == 11
+    if len(cpf_clean) != 11:
+        return False
+    if cpf_clean == cpf_clean[0] * 11:
+        return False
+    sum1 = sum(int(cpf_clean[i]) * (10 - i) for i in range(9))
+    resto1 = sum1 % 11
+    d1 = 0 if resto1 < 2 else 11 - resto1
+    if int(cpf_clean[9]) != d1:
+        return False
+    sum2 = sum(int(cpf_clean[i]) * (11 - i) for i in range(10))
+    resto2 = sum2 % 11
+    d2 = 0 if resto2 < 2 else 11 - resto2
+    return int(cpf_clean[10]) == d2
 
 def _valida_data(data: str) -> bool:
     """Valida formato DD/MM/AAAA."""

@@ -15,7 +15,7 @@ from typing import Any, Optional
 
 
 @dataclass
-class CrossReference:
+class IMCrossReference:
     """
     Referência cruzada entre uma pessoa e um imóvel.
 
@@ -46,7 +46,7 @@ class CrossReference:
         return asdict(self)
 
 
-class CrossChainManager:
+class CrossChainIM:
     """
     Gerencia referências entre blockchain_pf e blockchain_im.
 
@@ -60,7 +60,7 @@ class CrossChainManager:
     def __init__(self) -> None:
         self._pf_chains: dict[str, Any] = {}   # cpf → Blockchain (PF)
         self._im_chains: dict[str, Any] = {}   # matrícula → PropertyChain (IM)
-        self._references: list[CrossReference] = []
+        self._references: list[IMCrossReference] = []
 
     # ── Registro de cadeias ───────────────────────────────────────────
 
@@ -133,7 +133,7 @@ class CrossChainManager:
         bloco_pessoa: Optional[int] = None,
         bloco_imovel: Optional[int] = None,
         dados: Optional[dict] = None,
-    ) -> CrossReference:
+    ) -> IMCrossReference:
         """
         Cria uma referência cruzada entre pessoa e imóvel.
 
@@ -166,7 +166,7 @@ class CrossChainManager:
                 last_block = chain_im.chain[-1]
                 hash_imovel = last_block.hash
 
-        ref = CrossReference(
+        ref = IMCrossReference(
             cpf=cpf_clean,
             matricula=matricula_clean,
             tipo_vinculo=tipo_vinculo,
@@ -280,14 +280,14 @@ class CrossChainManager:
             json.dump(self.to_dict(), f, indent=2, default=str)
 
     @classmethod
-    def load_from_file(cls, filepath: str) -> "CrossChainManager":
+    def load_from_file(cls, filepath: str) -> "CrossChainIM":
         """Carrega referências de JSON."""
         import json
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
         manager = cls()
         for ref_data in data.get("referencias", []):
-            ref = CrossReference(**ref_data)
+            ref = IMCrossReference(**ref_data)
             manager._references.append(ref)
         return manager
 
@@ -295,8 +295,13 @@ class CrossChainManager:
 
     def __repr__(self) -> str:
         return (
-            f"CrossChainManager("
+            f"CrossChainIM("
             f"pf={len(self._pf_chains)}, "
             f"im={len(self._im_chains)}, "
             f"refs={len(self._references)})"
         )
+
+
+# Aliases retrocompativeis com os nomes legados (L6)
+CrossChainManager = CrossChainIM
+CrossReference = IMCrossReference

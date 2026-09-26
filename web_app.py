@@ -21,6 +21,8 @@ Endpoints:
   GET  /api/chains               → Listar todas as cadeias
 """
 
+import asyncio
+import hashlib
 import json
 import re
 import time
@@ -28,6 +30,8 @@ import os
 import secrets
 import sys
 import unicodedata
+from contextlib import asynccontextmanager
+from functools import partial
 from typing import Any, Optional, Dict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -104,12 +108,27 @@ from blockchain_pf.database import Database
 from blockchain_pf import geografia_br as geografia
 
 
-# ── App ────────────────────────────────────────────────────────────────
+# ── Configuracao via env (M12) ─────────────────────────────────────
+
+PORT = int(os.environ.get("PORT", "8000"))
+DEFAULT_DIFFICULTY = int(os.environ.get("DEFAULT_DIFFICULTY", "2"))
+TOKEN_EXPIRY_HOURS = int(os.environ.get("TOKEN_EXPIRY_HOURS", "24"))
+
+
+# ── App ────────────────────────────────────────────────────────────
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Startup/shutdown unificados (substitui @app.on_event deprecated — M8)."""
+    startup()
+    yield
+    shutdown()
 
 app = FastAPI(
     title="Blockchain PF — Eventos Vitais",
     description="API REST para cadeia de blocos de eventos vitais de Pessoa Fisica.",
     version="2.0.0",
+    lifespan=lifespan,
 )
 
 allowed_origins_env = os.environ.get("ALLOWED_ORIGINS", "http://localhost:8000")
@@ -142,18 +161,23 @@ pf_graph = RelationshipGraph()
 # ── Models Pydantic ────────────────────────────────────────────────────
 
 class NascimentoRequest(BaseModel):
-    cpf: str = Field(..., description="CPF (11 digitos)")
-    nome_completo: str
+    cpf: str = Field(..., max_length=14, description="CPF (11 digitos)")
+    nome_completo: str = Field(..., max_length=200)
     data_nascimento: str = Field(..., description="DD/MM/AAAA")
     sexo: str = Field(..., description="M ou F")
-    cidade_nascimento: str
-    uf_nascimento: str
-    nome_mae: str
-    nome_pai: Optional[str] = None
+    cidade_nascimento: str = Field(..., max_length=120)
+    uf_nascimento: str = Field(..., max_length=2)
+    nome_mae: str = Field(..., max_length=200)
+    nome_pai: Optional[str] = Field(None, max_length=200)
 
 class EventoRequest(BaseModel):
     event_type: str = Field(..., description="Tipo do evento")
     payload: dict = Field(..., description="Dados do evento")
+
+class DomainEventRequest(BaseModel):
+    """Modelo generico para rotas de eventos das cadeias de dominio (H8)."""
+    event_type: str = Field(..., min_length=1, max_length=64, description="Tipo do evento")
+    payload: dict = Field(default_factory=dict, description="Dados do evento")
 
 class CasamentoRequest(BaseModel):
     cpf: str
@@ -263,16 +287,16 @@ class SignerRequest(BaseModel):
     label: str = Field("autoridade", description="Nome da autoridade")
 
 class ChainCreateRequest(BaseModel):
-    difficulty: int = Field(2, ge=1, le=5)
+    difficulty: int = Field(DEFAULT_DIFFICULTY, ge=1, le=5)
     signer_label: Optional[str] = None
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1, max_length=128)
+    password: str = Field(..., min_length=1, max_length=256)
 
 class UserCreateRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1, max_length=128)
+    password: str = Field(..., min_length=1, max_length=256)
     role: str = Field("admin", description="admin | user | readonly")
 
 # ── Models para Imóveis ─────────────────────────────────────────────
@@ -292,12 +316,12 @@ class TerrenoRequest(BaseModel):
     metragem_lado_esq: float = 0.0
     metragem_lado_dir: float = 0.0
     zoneamento: str = ""
-    uso_permitido: list = []
+    uso_permitido: list[str] = []
     altura_maxima: float = 0.0
     taxa_ocupacao: float = 0.0
     cacau_permitido: float = 0.0
     codigo_iptu: str = ""
-    proprietarios: list = []
+    proprietarios: list[dict] = []
 
 class ConstrucaoRequest(BaseModel):
     matricula: str
@@ -336,7 +360,7 @@ class CompraVendaRequest(BaseModel):
     comprador_nome: str
     vendedor_cpf: str
     vendedor_nome: str
-    valor_transacao: float
+    valor_transacao: float = Field(..., ge=0)
     data_transacao: str
     escritura_numero: str = ""
     cartorio: str = ""
@@ -354,7 +378,7 @@ class HerancaRequest(BaseModel):
     matricula: str
     inventariado_cpf: str
     inventariado_nome: str
-    herdeiros: list
+    herdeiros: list[dict]
     data_obito: str
     data_inventario: str = ""
     inventario_tipo: str = "JUDICIAL"
@@ -490,6 +514,8 @@ def ok(data: Any = None, message: str = "OK") -> dict:
 
 def _validate_event_type(enum_cls, event_type: str) -> str:
     """Valida que event_type pertence ao enum do dominio. Retorna o evento validado."""
+    from blockchain_pf.events import normalize_event_type
+    event_type = normalize_event_type(event_type)
     allowed = {e.value for e in enum_cls}
     if event_type not in allowed:
         raise HTTPException(
@@ -671,6 +697,7 @@ def landing_home():
     <a href="/api/docs">📄 Swagger (ReDoc)</a>
     <a href="/api/chains">🔗 Cadeias PF</a>
     <a href="/api/im">🏠 Imóveis</a>
+    <a href="/api/mo">🚗 Veículos</a>
     <a href="/api/co">🏢 Empresas</a>
     <a href="/api/em">⛵ Embarcações</a>
     <a href="/api/ac">✈️ Aeronaves</a>
@@ -861,7 +888,7 @@ def login(req: LoginRequest):
     return ok({
         "token": token,
         "token_type": "bearer",
-        "expires_in": 86400,
+        "expires_in": TOKEN_EXPIRY_HOURS * 3600,
         "user": user.to_dict(),
     }, "Login realizado com sucesso.")
 
@@ -966,42 +993,72 @@ def delete_chain(cpf: str, user: dict = Depends(require_admin)):
 # ── Rotas: Eventos ─────────────────────────────────────────────────────
 
 def _persist_chain(cpf: str) -> None:
-    """Salva a cadeia no SQLite."""
-    if cpf in chains and db:
-        chain = chains[cpf]
+    """Salva a cadeia no SQLite (normaliza o CPF — C4)."""
+    cpf_clean = re.sub(r"\D", "", cpf)
+    if cpf_clean in chains and db:
+        chain = chains[cpf_clean]
         chain_data = {"difficulty": chain.difficulty, "chain": [b.to_dict() for b in chain.chain]}
-        db.save_chain(cpf, chain.difficulty, chain_data)
+        db.save_chain(cpf_clean, chain.difficulty, chain_data)
+
+
+def _ja_obito(cpf: str) -> bool:
+    """True se a cadeia PF ja foi encerrada por OBITO."""
+    chain = get_chain(cpf)
+    return len(chain.get_events_by_type(EventType.OBITO.value)) > 0
+
+
+def _add_pf_event(
+    cpf: str,
+    event_type: str,
+    payload: dict,
+    strict_obito: bool = True,
+):
+    """
+    Handler generico de eventos PF (M4): checa OBITO, adiciona o bloco
+    e persiste a cadeia no SQLite.
+
+    Args:
+        strict_obito: se True, qualquer evento e bloqueado apos OBITO
+                      (rotas especificas); se False, vale o ChainProtector
+                      (permite ALTERACAO_NOME, etc).
+    """
+    chain = get_chain(cpf)
+    if _ja_obito(cpf) and (strict_obito or not ChainProtector.pode_adicionar(event_type, True)):
+        raise HTTPException(status_code=400, detail="Cadeia encerrada por OBITO.")
+    try:
+        block = chain.add_event(event_type, payload)
+    except (ValueError, TypeError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    _persist_chain(cpf)
+    return block
 
 
 @app.post("/api/chain/{cpf}/event", status_code=201)
-def add_event(cpf: str, req: EventoRequest, user: dict = Depends(require_write_access)):
+async def add_event(cpf: str, req: EventoRequest, user: dict = Depends(require_write_access)):
     chain = get_chain(cpf)
-    _validate_event_type(EventType, req.event_type)
-
-    # Verifica se ha obito
-    ja_obito = len(chain.get_events_by_type(EventType.OBITO.value)) > 0
-    if ja_obito and not ChainProtector.pode_adicionar(req.event_type, True):
-        raise HTTPException(
-            status_code=400,
-            detail="Cadeia encerrada por OBITO. Evento bloqueado.",
-        )
+    event_type = _validate_event_type(EventType, req.event_type)
 
     # Se a cadeia esta vazia e o evento e NASCIMENTO, cria genesis
-    if not chain.chain and req.event_type == "NASCIMENTO":
-        block = chain.create_genesis(req.payload)
-    else:
+    if not chain.chain and event_type == "NASCIMENTO":
         try:
-            block = chain.add_event(req.event_type, req.payload)
-        except (ValueError, TypeError) as e:
+            loop = asyncio.get_running_loop()
+            block = await loop.run_in_executor(None, chain.create_genesis, req.payload)
+        except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
+        _persist_chain(cpf)
+    else:
+        # PoW roda fora do event loop (M1)
+        loop = asyncio.get_running_loop()
+        block = await loop.run_in_executor(
+            None, partial(_add_pf_event, cpf, event_type, req.payload, False)
+        )
 
-    _persist_chain(cpf)
     return ok({
         "bloco_index": block.index,
         "hash": block.hash,
         "assinado": block.has_signature(),
         "emissor": block.signature.get("signer_label") if block.has_signature() else None,
-    }, f"Evento {req.event_type} registrado.")
+    }, f"Evento {event_type} registrado.")
 
 
 @app.post("/api/chain/{cpf}/event/nascimento", status_code=201)
@@ -1021,6 +1078,7 @@ def add_nascimento(cpf: str, req: NascimentoRequest, user: dict = Depends(requir
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    _persist_chain(cpf)  # Persiste o genesis no SQLite (H4)
     return ok({
         "bloco_index": block.index,
         "hash": block.hash,
@@ -1030,22 +1088,16 @@ def add_nascimento(cpf: str, req: NascimentoRequest, user: dict = Depends(requir
 
 @app.post("/api/chain/{cpf}/event/casamento", status_code=201)
 def add_casamento(cpf: str, req: CasamentoRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
-    ja_obito = len(chain.get_events_by_type(EventType.OBITO.value)) > 0
-    if ja_obito:
-        raise HTTPException(status_code=400, detail="Cadeia encerrada por OBITO.")
-
     try:
         dados = EventFactory.casamento(
             cpf=req.cpf, nome_conjuge=req.nome_conjuge,
             cpf_conjuge=req.cpf_conjuge, data_casamento=req.data_casamento,
             regime_bens=req.regime_bens, cidade=req.cidade, uf=req.uf,
         )
-        block = chain.add_event(EventType.CASAMENTO.value, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, EventType.CASAMENTO.value, dados)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1054,22 +1106,16 @@ def add_casamento(cpf: str, req: CasamentoRequest, user: dict = Depends(require_
 
 @app.post("/api/chain/{cpf}/event/divorcio", status_code=201)
 def add_divorcio(cpf: str, req: DivorcioRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
-    ja_obito = len(chain.get_events_by_type(EventType.OBITO.value)) > 0
-    if ja_obito:
-        raise HTTPException(status_code=400, detail="Cadeia encerrada por OBITO.")
-
     try:
         dados = EventFactory.divorcio(
             cpf=req.cpf, data_divorcio=req.data_divorcio,
             tipo=req.tipo, guarda_filhos=req.guarda_filhos,
             pensao_alimenticia=req.pensao_alimenticia,
         )
-        block = chain.add_event(EventType.DIVORCIO.value, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, EventType.DIVORCIO.value, dados)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1078,11 +1124,6 @@ def add_divorcio(cpf: str, req: DivorcioRequest, user: dict = Depends(require_wr
 
 @app.post("/api/chain/{cpf}/event/adocao", status_code=201)
 def add_adocao(cpf: str, req: AdocaoRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
-    ja_obito = len(chain.get_events_by_type(EventType.OBITO.value)) > 0
-    if ja_obito:
-        raise HTTPException(status_code=400, detail="Cadeia encerrada por OBITO.")
-
     try:
         dados = EventFactory.adocao(
             cpf=req.cpf, nome_adotivo=req.nome_adotivo,
@@ -1090,11 +1131,10 @@ def add_adocao(cpf: str, req: AdocaoRequest, user: dict = Depends(require_write_
             nome_pai_adotivo=req.nome_pai_adotivo,
             mantem_nome_biologico=req.mantem_nome_biologico,
         )
-        block = chain.add_event(EventType.ADOCAO.value, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, EventType.ADOCAO.value, dados)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1103,18 +1143,16 @@ def add_adocao(cpf: str, req: AdocaoRequest, user: dict = Depends(require_write_
 
 @app.post("/api/chain/{cpf}/event/obito", status_code=201)
 def add_obito(cpf: str, req: ObitoRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
     try:
         dados = EventFactory.obito(
             cpf=req.cpf, data_obito=req.data_obito,
             cidade_obito=req.cidade_obito, uf_obito=req.uf_obito,
             causa_morte=req.causa_morte,
         )
-        block = chain.add_event(EventType.OBITO.value, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, EventType.OBITO.value, dados, strict_obito=False)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1123,21 +1161,17 @@ def add_obito(cpf: str, req: ObitoRequest, user: dict = Depends(require_write_ac
 
 @app.post("/api/chain/{cpf}/event/alteracao_nome", status_code=201)
 def add_alteracao_nome(cpf: str, req: AlteracaoNomeRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
     # ALTERACAO_NOME e permitida apos obito (correcao administrativa)
-    # Nao bloqueia aqui — ChainProtector ja define essa regra
-
     try:
         dados = EventFactory.alteracao_nome(
             cpf=req.cpf, nome_anterior=req.nome_anterior,
             nome_novo=req.nome_novo, data_alteracao=req.data_alteracao,
             motivo=req.motivo,
         )
-        block = chain.add_event(EventType.ALTERACAO_NOME.value, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, EventType.ALTERACAO_NOME.value, dados, strict_obito=False)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1146,29 +1180,23 @@ def add_alteracao_nome(cpf: str, req: AlteracaoNomeRequest, user: dict = Depends
 
 @app.post("/api/chain/{cpf}/event/disvinculacao", status_code=201)
 def add_disvinculacao(cpf: str, req: DisvinculacaoRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
-    ja_obito = len(chain.get_events_by_type(EventType.OBITO.value)) > 0
-    if ja_obito:
-        raise HTTPException(status_code=400, detail="Cadeia encerrada por OBITO.")
-
     try:
         if req.tipo.upper() == "P":
             dados = EventFactory.disvinculacao_paterna(
                 cpf=req.cpf, data_disvinculacao=req.data_disvinculacao,
                 motivo=req.motivo,
             )
-            evt_type = EventType.DISVINC_PATerna.value
+            evt_type = EventType.DISVINC_PATERNA.value
         else:
             dados = EventFactory.disvinculacao_materna(
                 cpf=req.cpf, data_disvinculacao=req.data_disvinculacao,
                 motivo=req.motivo,
             )
             evt_type = EventType.DISVINC_MATERNA.value
-        block = chain.add_event(evt_type, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, evt_type, dados)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1177,11 +1205,6 @@ def add_disvinculacao(cpf: str, req: DisvinculacaoRequest, user: dict = Depends(
 
 @app.post("/api/chain/{cpf}/event/vacina", status_code=201)
 def add_vacina(cpf: str, req: VacinaRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
-    ja_obito = len(chain.get_events_by_type(EventType.OBITO.value)) > 0
-    if ja_obito:
-        raise HTTPException(status_code=400, detail="Cadeia encerrada por OBITO.")
-
     try:
         dados = EventFactory.vacina(
             cpf=req.cpf, nome_vacina=req.nome_vacina,
@@ -1189,11 +1212,10 @@ def add_vacina(cpf: str, req: VacinaRequest, user: dict = Depends(require_write_
             fabricante=req.fabricante, dose=req.dose,
             unidade_saude=req.unidade_saude, cidade=req.cidade, uf=req.uf,
         )
-        block = chain.add_event(EventType.VACINACAO.value, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, EventType.VACINACAO.value, dados)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1202,11 +1224,6 @@ def add_vacina(cpf: str, req: VacinaRequest, user: dict = Depends(require_write_
 
 @app.post("/api/chain/{cpf}/event/protese", status_code=201)
 def add_protese(cpf: str, req: ProteseRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
-    ja_obito = len(chain.get_events_by_type(EventType.OBITO.value)) > 0
-    if ja_obito:
-        raise HTTPException(status_code=400, detail="Cadeia encerrada por OBITO.")
-
     try:
         dados = EventFactory.protese(
             cpf=req.cpf, nome_protese=req.nome_protese,
@@ -1215,11 +1232,10 @@ def add_protese(cpf: str, req: ProteseRequest, user: dict = Depends(require_writ
             hospital_clinica=req.hospital_clinica, cidade=req.cidade, uf=req.uf,
             data_remocao=req.data_remocao, motivo_remocao=req.motivo_remocao,
         )
-        block = chain.add_event(EventType.PROTESE.value, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, EventType.PROTESE.value, dados)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1228,11 +1244,6 @@ def add_protese(cpf: str, req: ProteseRequest, user: dict = Depends(require_writ
 
 @app.post("/api/chain/{cpf}/event/cnh", status_code=201)
 def add_cnh(cpf: str, req: CNHRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
-    ja_obito = len(chain.get_events_by_type(EventType.OBITO.value)) > 0
-    if ja_obito:
-        raise HTTPException(status_code=400, detail="Cadeia encerrada por OBITO.")
-
     try:
         dados = EventFactory.cnh(
             cpf=req.cpf, numero_cnh=req.numero_cnh, categoria=req.categoria,
@@ -1241,11 +1252,10 @@ def add_cnh(cpf: str, req: CNHRequest, user: dict = Depends(require_write_access
             situacao=req.situacao, pontos=req.pontos,
             exame_medico=req.exame_medico, data_exame_medico=req.data_exame_medico,
         )
-        block = chain.add_event(EventType.CNH.value, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, EventType.CNH.value, dados)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1254,11 +1264,6 @@ def add_cnh(cpf: str, req: CNHRequest, user: dict = Depends(require_write_access
 
 @app.post("/api/chain/{cpf}/event/titulo_eleitor", status_code=201)
 def add_titulo_eleitor(cpf: str, req: TituloEleitorRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
-    ja_obito = len(chain.get_events_by_type(EventType.OBITO.value)) > 0
-    if ja_obito:
-        raise HTTPException(status_code=400, detail="Cadeia encerrada por OBITO.")
-
     try:
         dados = EventFactory.titulo_eleitor(
             cpf=req.cpf, numero_titulo=req.numero_titulo,
@@ -1267,11 +1272,10 @@ def add_titulo_eleitor(cpf: str, req: TituloEleitorRequest, user: dict = Depends
             data_emissao=req.data_emissao, situacao=req.situacao,
             titulo_anterior=req.titulo_anterior,
         )
-        block = chain.add_event(EventType.TITULO_ELEITOR.value, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, EventType.TITULO_ELEITOR.value, dados)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1280,11 +1284,6 @@ def add_titulo_eleitor(cpf: str, req: TituloEleitorRequest, user: dict = Depends
 
 @app.post("/api/chain/{cpf}/event/escolaridade", status_code=201)
 def add_escolaridade(cpf: str, req: EscolaridadeRequest, user: dict = Depends(require_write_access)):
-    chain = get_chain(cpf)
-    ja_obito = len(chain.get_events_by_type(EventType.OBITO.value)) > 0
-    if ja_obito:
-        raise HTTPException(status_code=400, detail="Cadeia encerrada por OBITO.")
-
     try:
         dados = EventFactory.escolaridade(
             cpf=req.cpf, nivel=req.nivel, instituicao=req.instituicao,
@@ -1293,11 +1292,10 @@ def add_escolaridade(cpf: str, req: EscolaridadeRequest, user: dict = Depends(re
             situacao=req.situacao, registro=req.registro,
             tipo_registro=req.tipo_registro,
         )
-        block = chain.add_event(EventType.ESCOLARIDADE.value, dados)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    _persist_chain(cpf)
+    block = _add_pf_event(cpf, EventType.ESCOLARIDADE.value, dados)
     return ok({
         "bloco_index": block.index, "hash": block.hash,
         "assinado": block.has_signature(),
@@ -1378,7 +1376,8 @@ def get_predictions(cpf: str):
 
 
 @app.get("/api/chain/{cpf}/export")
-def export_chain(cpf: str):
+def export_chain(cpf: str, user: dict = Depends(get_current_user)):
+    # Export completo exige autenticacao de leitura (H1 — unica rota GET protegida)
     chain = get_chain(cpf)
     return ok({
         "difficulty": chain.difficulty,
@@ -1411,7 +1410,7 @@ def create_imovel(req: TerrenoRequest, user: dict = Depends(require_write_access
     if matricula in im_chains:
         raise HTTPException(status_code=409, detail=f"Cadeia já existe para matrícula: {matricula}")
 
-    chain = PropertyChain(difficulty=2)
+    chain = PropertyChain(difficulty=DEFAULT_DIFFICULTY)
     chain.set_signer(generate_authority_keypair("cartorio_imoveis"))
     try:
         dados = PropertyEventFactory.terreno(
@@ -1698,7 +1697,7 @@ def create_veiculo(req: VehicleCreateRequest, user: dict = Depends(require_write
     placa = req.placa.strip().upper()
     if placa in mo_chains:
         raise HTTPException(status_code=409, detail=f"Cadeia já existe para placa: {placa}")
-    chain = VehicleChain(difficulty=2)
+    chain = VehicleChain(difficulty=DEFAULT_DIFFICULTY)
     chain.set_signer(generate_authority_keypair("detran"))
     try:
         dados = VehicleEventFactory.fabricacao(**req.model_dump(exclude={"placa"}), placa=placa)
@@ -1742,12 +1741,12 @@ def validate_veiculo(placa: str, require_signatures: bool = False):
 
 
 @app.post("/api/mo/{placa}/event", status_code=201)
-def add_veiculo_event(placa: str, req: dict, user: dict = Depends(require_write_access)):
+def add_veiculo_event(placa: str, req: DomainEventRequest, user: dict = Depends(require_write_access)):
     placa = placa.upper()
     if placa not in mo_chains:
         raise HTTPException(status_code=404, detail=f"Veiculo nao encontrado: {placa}")
-    event_type = _validate_event_type(VehicleEventType, req.get("event_type", ""))
-    payload = req.get("payload", {})
+    event_type = _validate_event_type(VehicleEventType, req.event_type)
+    payload = req.payload
     try:
         block = mo_chains[placa].add_event(event_type, payload)
     except (ValueError, TypeError) as e:
@@ -1790,10 +1789,10 @@ def list_empresas():
 
 @app.post("/api/co", status_code=201)
 def create_empresa(req: CompanyCreateRequest, user: dict = Depends(require_write_access)):
-    cnpj_clean = __import__("re").sub(r"\D", "", req.cnpj)
+    cnpj_clean = re.sub(r"\D", "", req.cnpj)
     if cnpj_clean in co_chains:
         raise HTTPException(status_code=409, detail=f"Cadeia ja existe para CNPJ: {cnpj_clean}")
-    chain = CompanyChain(difficulty=2)
+    chain = CompanyChain(difficulty=DEFAULT_DIFFICULTY)
     chain.set_signer(generate_authority_keypair("junta_comercial"))
     try:
         dados = CompanyEventFactory.constituicao(
@@ -1808,7 +1807,7 @@ def create_empresa(req: CompanyCreateRequest, user: dict = Depends(require_write
 
 @app.get("/api/co/{cnpj}")
 def get_empresa_info(cnpj: str):
-    cnpj_clean = __import__("re").sub(r"\D", "", cnpj)
+    cnpj_clean = re.sub(r"\D", "", cnpj)
     if cnpj_clean not in co_chains:
         raise HTTPException(status_code=404, detail=f"Empresa nao encontrada: {cnpj_clean}")
     chain = co_chains[cnpj_clean]
@@ -1817,18 +1816,26 @@ def get_empresa_info(cnpj: str):
 
 @app.get("/api/co/{cnpj}/timeline")
 def get_empresa_timeline(cnpj: str):
-    cnpj_clean = __import__("re").sub(r"\D", "", cnpj)
+    cnpj_clean = re.sub(r"\D", "", cnpj)
     if cnpj_clean not in co_chains:
         raise HTTPException(status_code=404, detail=f"Empresa nao encontrada: {cnpj_clean}")
     return ok(co_chains[cnpj_clean].get_historico_completo())
 
-@app.post("/api/co/{cnpj}/event", status_code=201)
-def add_empresa_event(cnpj: str, req: dict, user: dict = Depends(require_write_access)):
-    cnpj_clean = __import__("re").sub(r"\D", "", cnpj)
+@app.get("/api/co/{cnpj}/validate")
+def validate_empresa(cnpj: str, require_signatures: bool = False):
+    cnpj_clean = re.sub(r"\D", "", cnpj)
     if cnpj_clean not in co_chains:
         raise HTTPException(status_code=404, detail=f"Empresa nao encontrada: {cnpj_clean}")
-    event_type = _validate_event_type(CompanyEventType, req.get("event_type", ""))
-    payload = req.get("payload", {})
+    valida, msg = co_chains[cnpj_clean].validate(require_signatures=require_signatures)
+    return ok({"valida": valida, "mensagem": msg, "blocos": len(co_chains[cnpj_clean])})
+
+@app.post("/api/co/{cnpj}/event", status_code=201)
+def add_empresa_event(cnpj: str, req: DomainEventRequest, user: dict = Depends(require_write_access)):
+    cnpj_clean = re.sub(r"\D", "", cnpj)
+    if cnpj_clean not in co_chains:
+        raise HTTPException(status_code=404, detail=f"Empresa nao encontrada: {cnpj_clean}")
+    event_type = _validate_event_type(CompanyEventType, req.event_type)
+    payload = req.payload
     try:
         block = co_chains[cnpj_clean].add_event(event_type, payload)
     except (ValueError, TypeError) as e:
@@ -1838,7 +1845,7 @@ def add_empresa_event(cnpj: str, req: dict, user: dict = Depends(require_write_a
 
 @app.delete("/api/co/{cnpj}")
 def delete_empresa(cnpj: str, user: dict = Depends(require_admin)):
-    cnpj_clean = __import__("re").sub(r"\D", "", cnpj)
+    cnpj_clean = re.sub(r"\D", "", cnpj)
     if cnpj_clean not in co_chains:
         raise HTTPException(status_code=404, detail="Empresa nao encontrada.")
     del co_chains[cnpj_clean]
@@ -1865,7 +1872,7 @@ def create_embarcacao(req: VesselCreateRequest, user: dict = Depends(require_wri
     reg = req.registro_nr.strip()
     if reg in em_chains:
         raise HTTPException(status_code=409, detail=f"Cadeia ja existe para registro: {reg}")
-    chain = VesselChain(difficulty=2)
+    chain = VesselChain(difficulty=DEFAULT_DIFFICULTY)
     chain.set_signer(generate_authority_keypair("capitania_portos"))
     try:
         dados = VesselEventFactory.construcao(
@@ -1892,12 +1899,19 @@ def get_embarcacao_timeline(registro: str):
         raise HTTPException(status_code=404, detail=f"Embarcacao nao encontrada: {registro}")
     return ok(em_chains[registro].get_historico_completo())
 
-@app.post("/api/em/{registro}/event", status_code=201)
-def add_embarcacao_event(registro: str, req: dict, user: dict = Depends(require_write_access)):
+@app.get("/api/em/{registro}/validate")
+def validate_embarcacao(registro: str, require_signatures: bool = False):
     if registro not in em_chains:
         raise HTTPException(status_code=404, detail=f"Embarcacao nao encontrada: {registro}")
-    event_type = _validate_event_type(VesselEventType, req.get("event_type", ""))
-    payload = req.get("payload", {})
+    valida, msg = em_chains[registro].validate(require_signatures=require_signatures)
+    return ok({"valida": valida, "mensagem": msg, "blocos": len(em_chains[registro])})
+
+@app.post("/api/em/{registro}/event", status_code=201)
+def add_embarcacao_event(registro: str, req: DomainEventRequest, user: dict = Depends(require_write_access)):
+    if registro not in em_chains:
+        raise HTTPException(status_code=404, detail=f"Embarcacao nao encontrada: {registro}")
+    event_type = _validate_event_type(VesselEventType, req.event_type)
+    payload = req.payload
     try:
         block = em_chains[registro].add_event(event_type, payload)
     except (ValueError, TypeError) as e:
@@ -1933,7 +1947,7 @@ def create_aeronave(req: AircraftCreateRequest, user: dict = Depends(require_wri
     mat = req.matricula.strip().upper()
     if mat in ac_chains:
         raise HTTPException(status_code=409, detail=f"Cadeia ja existe para matricula: {mat}")
-    chain = AircraftChain(difficulty=2)
+    chain = AircraftChain(difficulty=DEFAULT_DIFFICULTY)
     chain.set_signer(generate_authority_keypair("anac"))
     try:
         dados = AircraftEventFactory.fabricacao(
@@ -1962,13 +1976,21 @@ def get_aeronave_timeline(matricula: str):
         raise HTTPException(status_code=404, detail=f"Aeronave nao encontrada: {matricula}")
     return ok(ac_chains[matricula].get_historico_completo())
 
-@app.post("/api/ac/{matricula}/event", status_code=201)
-def add_aeronave_event(matricula: str, req: dict, user: dict = Depends(require_write_access)):
+@app.get("/api/ac/{matricula}/validate")
+def validate_aeronave(matricula: str, require_signatures: bool = False):
     matricula = matricula.upper()
     if matricula not in ac_chains:
         raise HTTPException(status_code=404, detail=f"Aeronave nao encontrada: {matricula}")
-    event_type = _validate_event_type(AircraftEventType, req.get("event_type", ""))
-    payload = req.get("payload", {})
+    valida, msg = ac_chains[matricula].validate(require_signatures=require_signatures)
+    return ok({"valida": valida, "mensagem": msg, "blocos": len(ac_chains[matricula])})
+
+@app.post("/api/ac/{matricula}/event", status_code=201)
+def add_aeronave_event(matricula: str, req: DomainEventRequest, user: dict = Depends(require_write_access)):
+    matricula = matricula.upper()
+    if matricula not in ac_chains:
+        raise HTTPException(status_code=404, detail=f"Aeronave nao encontrada: {matricula}")
+    event_type = _validate_event_type(AircraftEventType, req.event_type)
+    payload = req.payload
     try:
         block = ac_chains[matricula].add_event(event_type, payload)
     except (ValueError, TypeError) as e:
@@ -2002,14 +2024,13 @@ def list_animais():
 
 @app.post("/api/an", status_code=201)
 def create_animal(req: AnimalCreateRequest, user: dict = Depends(require_write_access)):
-    import hashlib
     nome = req.nome
     cpf = req.proprietario_cpf
     data = req.data_nascimento
     aid = hashlib.sha256(f"{nome}{cpf}{data}".encode()).hexdigest()[:12]
     if aid in an_chains:
         raise HTTPException(status_code=409, detail=f"Animal ja registrado: {aid}")
-    chain = AnimalChain(difficulty=2)
+    chain = AnimalChain(difficulty=DEFAULT_DIFFICULTY)
     chain.set_signer(generate_authority_keypair("crm veterinario"))
     try:
         dados = AnimalEventFactory.nascimento(**req.model_dump())
@@ -2034,12 +2055,19 @@ def get_animal_timeline(animal_id: str):
         raise HTTPException(status_code=404, detail=f"Animal nao encontrado: {animal_id}")
     return ok(an_chains[animal_id].get_historico_completo())
 
-@app.post("/api/an/{animal_id}/event", status_code=201)
-def add_animal_event(animal_id: str, req: dict, user: dict = Depends(require_write_access)):
+@app.get("/api/an/{animal_id}/validate")
+def validate_animal(animal_id: str, require_signatures: bool = False):
     if animal_id not in an_chains:
         raise HTTPException(status_code=404, detail=f"Animal nao encontrado: {animal_id}")
-    event_type = _validate_event_type(AnimalEventType, req.get("event_type", ""))
-    payload = req.get("payload", {})
+    valida, msg = an_chains[animal_id].validate(require_signatures=require_signatures)
+    return ok({"valida": valida, "mensagem": msg, "blocos": len(an_chains[animal_id])})
+
+@app.post("/api/an/{animal_id}/event", status_code=201)
+def add_animal_event(animal_id: str, req: DomainEventRequest, user: dict = Depends(require_write_access)):
+    if animal_id not in an_chains:
+        raise HTTPException(status_code=404, detail=f"Animal nao encontrado: {animal_id}")
+    event_type = _validate_event_type(AnimalEventType, req.event_type)
+    payload = req.payload
     try:
         block = an_chains[animal_id].add_event(event_type, payload)
     except (ValueError, TypeError) as e:
@@ -2190,6 +2218,14 @@ def autoridade_timeline(uid: str):
     return ok(tl)
 
 
+@app.get("/api/au/{uid}/validate")
+def autoridade_validate(uid: str, require_signatures: bool = False):
+    if uid not in au_chains:
+        raise HTTPException(status_code=404, detail=f"Autoridade nao encontrada: {uid}")
+    valida, msg = au_chains[uid].validate(require_signatures=require_signatures)
+    return ok({"valida": valida, "mensagem": msg, "blocos": len(au_chains[uid])})
+
+
 @app.get("/api/au/{uid}/filhos")
 def autoridade_filhos(uid: str):
     """Autoridades nomeadas diretamente pelo ator."""
@@ -2202,6 +2238,15 @@ def autoridade_filhos(uid: str):
 def criar_autoridade(req: AuthorityCreateRequest, user: dict = Depends(get_current_user)):
     """N0 nomeia N1; N1 nomeia N2 (mesmo escopo+UF). Cria cadeia AU + conta."""
     actor = user.get("sub", "")
+    # Gate de seguranca (H2): apenas autoridades ativas do livro-razao AU
+    # podem nomear — usuarios comuns (mesmo autenticados) sao barrados aqui,
+    # antes de qualquer logica de dominio. O can_manage_authority abaixo
+    # mantem as regras hierarquicas (N0->N1/N2; N1->N2 do mesmo escopo+UF).
+    if not registry.ativa(actor):
+        raise HTTPException(
+            status_code=403,
+            detail="Apenas autoridades ativas podem nomear autoridades.",
+        )
     factory = AuthorityEventFactory
     try:
         dados = factory.nomeacao(
@@ -2220,7 +2265,7 @@ def criar_autoridade(req: AuthorityCreateRequest, user: dict = Depends(get_curre
                                    "(N0 nomeia N1/N2; N1 nomeia apenas N2 do mesmo escopo+UF).")
 
     uid = _username_autoridade(req.nivel, req.escopo, req.uf, req.cidade)
-    chain = AuthorityChain(difficulty=2)
+    chain = AuthorityChain(difficulty=DEFAULT_DIFFICULTY)
     chain.set_signer(generate_authority_keypair("autoridade"))
     dados["username"] = uid
     try:
@@ -2535,7 +2580,6 @@ def _criar_registro_dominio(domain: str, body: dict):
             ac_chains[cid] = chain
             return chain, cid, payload
         if domain == "an":
-            import hashlib
             nome = body.get("nome", "")
             cpf = body.get("proprietario_cpf", "")
             data = body.get("data_nascimento", "")
@@ -2556,7 +2600,7 @@ def _chain_com_genesis(cls, kp, factory, kwargs: dict):
         payload = factory(**kwargs)
     except TypeError as e:
         raise ValueError(f"Payload invalido para o dominio: {e}")
-    chain = cls(difficulty=2)
+    chain = cls(difficulty=DEFAULT_DIFFICULTY)
     chain.set_signer(kp)
     chain.create_genesis(payload)
     return chain, payload
@@ -2791,7 +2835,6 @@ def _save_current_state() -> None:
 
 # ── Startup ──────────────────────────────────────────────────────────
 
-@app.on_event("startup")
 def startup():
     # Carrega as 8 cadeias do SQLite
     for domain, store, cls, signer_label in _CHAIN_SPECS:
@@ -2813,15 +2856,17 @@ def startup():
           f"| CO={counts['co']} | EM={counts['em']} | AC={counts['ac']} | AN={counts['an']} "
           f"| AU={counts['au']} | Users={n_users} carregados")
     print("  Logins: admin (administrador), operador (operacao), consulta (somente leitura)")
-    print("  Autoridades N0: admin01/@dmin01BR, admin02/@dmin02BR, admin03/@dmin03BR")
 
 
 def _seed_autoridades_n0() -> None:
     """Cria as cadeias AU das 3 autoridades de nivel 0 (livro-razao)."""
+    init_default_authorities()  # garante as contas N0 (idempotente)
     for uid in ("admin01", "admin02", "admin03"):
-        if uid in au_chains or get_user(uid) is None:
-            continue
-        chain = AuthorityChain(difficulty=2)
+        if uid in au_chains and get_user(uid) is not None:
+            continue  # Ja seedada (cadeia + conta)
+        if uid in au_chains:
+            continue  # Cadeia existe, conta recriada acima
+        chain = AuthorityChain(difficulty=DEFAULT_DIFFICULTY)
         chain.set_signer(generate_authority_keypair("autoridade"))
         try:
             genesis = chain.create_genesis(AuthorityEventFactory.nomeacao(
@@ -2838,7 +2883,6 @@ def _seed_autoridades_n0() -> None:
         print(f"  AU: autoridade nacional {uid} seedada (bloco {genesis.index}).")
 
 
-@app.on_event("shutdown")
 def shutdown():
     """Salva estado ao desligar."""
     _save_current_state()
@@ -2856,4 +2900,4 @@ if __name__ == "__main__":
     print("  API:    http://localhost:8000/api/health")
     print("  Auth:   POST /api/auth/login {username, password}")
     print(f"  DB:     {db.db_path}\n")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=PORT)

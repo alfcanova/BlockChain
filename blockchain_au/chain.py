@@ -25,6 +25,10 @@ class AuthorityChain(Blockchain):
 
     def create_genesis(self, authority_data: dict[str, Any]) -> Block:
         """Genesis: bloco assinado com o snapshot inicial da autoridade."""
+        with self._lock:
+            return self._create_genesis_impl(authority_data)
+
+    def _create_genesis_impl(self, authority_data: dict[str, Any]) -> Block:
         if not self._signer:
             raise ValueError(
                 "Cadeia requer assinador configurado (set_signer) para registrar operacoes."

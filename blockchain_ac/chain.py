@@ -8,7 +8,9 @@ persistência em JSON e operações de busca.
 
 import json
 import os
+import threading
 import time
+import warnings
 from typing import Any, Optional
 
 from blockchain_pf.block import Block
@@ -32,6 +34,8 @@ class AircraftChain:
         self._event_index: dict[str, list[int]] = {}
         self._default_keypair = generate_authority_keypair("anac")
         self._signer = Signer(self._default_keypair)
+        # Lock de serializacao: evita fork da cadeia em acesso concorrente (C6)
+        self._lock = threading.Lock()
 
     def set_signer(self, keypair: KeyPair) -> None:
         self._signer = Signer(keypair)
@@ -41,6 +45,10 @@ class AircraftChain:
         return self._signer
 
     def create_genesis(self, data: dict[str, Any]) -> Block:
+        with self._lock:
+            return self._create_genesis_impl(data)
+
+    def _create_genesis_impl(self, data: dict[str, Any]) -> Block:
         if not self._signer:
             raise ValueError("Cadeia requer assinador configurado (set_signer) para registrar operações.")
         genesis = Block(
@@ -57,6 +65,10 @@ class AircraftChain:
         return genesis
 
     def add_event(self, event_type: str, payload: dict[str, Any]) -> Block:
+        with self._lock:
+            return self._add_event_impl(event_type, payload)
+
+    def _add_event_impl(self, event_type: str, payload: dict[str, Any]) -> Block:
         if not self.chain:
             raise ValueError("Cadeia vazia — crie o bloco gênesis primeiro.")
         if not self._signer:
@@ -208,7 +220,11 @@ class AircraftChain:
             return False, f"Erro na verificação: {e}"
 
     def save_to_file(self, filepath: str) -> None:
-        data = {"difficulty": self.difficulty, "chain": [b.to_dict() for b in self.chain]}
+        data = {
+            "difficulty": self.difficulty,
+            "signer_public_key": self._signer.keypair.public_key_pem() if self._signer else None,
+            "chain": [b.to_dict() for b in self.chain],
+        }
         os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, default=str)
@@ -218,6 +234,17 @@ class AircraftChain:
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
         chain = cls(difficulty=data["difficulty"])
+        pub_pem = data.get("signer_public_key")
+        if pub_pem:
+            try:
+                chain._signer = Signer(KeyPair.from_public_key_pem(pub_pem))
+            except (TypeError, ValueError) as e:
+                warnings.warn(f"Falha ao restaurar signer publico: {e} — usando signer novo.")
+        else:
+            warnings.warn(
+                "Arquivo sem signer_public_key (formato legado) — "
+                "gerado novo signer; assinaturas antigas continuam validas."
+            )
         chain.chain = [Block.from_dict(b) for b in data["chain"]]
         for i, block in enumerate(chain.chain):
             chain._index_event(block.data.get("evento_tipo", ""), i)

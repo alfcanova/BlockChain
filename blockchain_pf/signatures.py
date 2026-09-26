@@ -38,11 +38,11 @@ class KeyPair:
     Par de chaves ECDSA (P-256).
     
     Attributes:
-        private_key: Chave privada ECDSA.
+        private_key: Chave privada ECDSA (None quando so ha a publica).
         public_key:  Chave pública ECDSA.
         label:       Identificador legível da chave (ex: "Cartório SP").
     """
-    private_key: EllipticCurvePrivateKey
+    private_key: Optional[EllipticCurvePrivateKey]
     public_key: EllipticCurvePublicKey
     label: str = "autoridade"
 
@@ -52,6 +52,18 @@ class KeyPair:
         private_key = ec.generate_private_key(SECP256R1())
         public_key = private_key.public_key()
         return cls(private_key=private_key, public_key=public_key, label=label)
+
+    @classmethod
+    def from_public_key_pem(cls, pem: str, label: str = "autoridade") -> "KeyPair":
+        """
+        Reconstrói um KeyPair somente com a chave pública (PEM).
+        Util para restaurar o signer apos load_from_file (sem chave privada
+        nao e possivel assinar novos blocos, apenas verificar assinaturas).
+        """
+        public_key = serialization.load_pem_public_key(pem.encode("utf-8"))
+        if not isinstance(public_key, EllipticCurvePublicKey):
+            raise TypeError("Chave PEM nao e uma chave publica ECDSA.")
+        return cls(private_key=None, public_key=public_key, label=label)
 
     # ── Serialização ──────────────────────────────────────────────────
 
@@ -184,10 +196,15 @@ class Signer:
         
         Args:
             block: Objeto Block (ou dict com hash, index, timestamp).
-        
+
         Returns:
             BlockSignature com a assinatura ECDSA.
         """
+        if self.keypair.private_key is None:
+            raise ValueError(
+                "Signer sem chave privada — nao e possivel assinar novos blocos. "
+                "Configure um signer com set_signer()."
+            )
         # Dados a serem assinados (do bloco, não do hash como string)
         sign_data = self._block_sign_payload(block)
 

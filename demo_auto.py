@@ -53,7 +53,7 @@ def main():
     chain.set_signer(keypair_cartorio)  # Todos os blocos serao assinados
 
     dados_nascimento = EventFactory.nascimento(
-        cpf="12345678901",
+        cpf="12345678909",
         nome_completo="Maria Clara de Oliveira Santos",
         data_nascimento="15/03/2000",
         sexo="F",
@@ -72,7 +72,7 @@ def main():
     linha("2. ALTERACAO DE NOME (aos 18 anos)")
 
     dados_nome = EventFactory.alteracao_nome(
-        cpf="12345678901",
+        cpf="12345678909",
         nome_anterior="Maria Clara de Oliveira Santos",
         nome_novo="Maria Clara Oliveira Santos Pereira",
         data_alteracao="15/03/2018",
@@ -86,7 +86,7 @@ def main():
     linha("3. CASAMENTO")
 
     dados_casamento = EventFactory.casamento(
-        cpf="12345678901",
+        cpf="12345678909",
         nome_conjuge="Pedro Henrique Almeida Lima",
         cpf_conjuge="98765432100",
         data_casamento="20/06/2022",
@@ -102,7 +102,7 @@ def main():
     linha("4. ADOTACAO")
 
     dados_adocao = EventFactory.adocao(
-        cpf="12345678901",
+        cpf="12345678909",
         nome_adotivo=None,
         data_adocao="10/11/2023",
         nome_mae_adotiva="Maria Clara Oliveira Santos Pereira",
@@ -120,7 +120,7 @@ def main():
     chain.set_signer(keypair_juizado)
 
     dados_divorcio = EventFactory.divorcio(
-        cpf="12345678901",
+        cpf="12345678909",
         data_divorcio="05/01/2025",
         tipo="CONSENSUAL",
         guarda_filhos="COMPARTILHADA",
@@ -135,7 +135,7 @@ def main():
     linha("6. DISVINCULACAO PATERNA")
 
     dados_disvinc = EventFactory.disvinculacao_paterna(
-        cpf="12345678901",
+        cpf="12345678909",
         data_disvinculacao="15/03/2026",
         motivo="Ausencia prolongada e abandono afetivo comprovado judicialmente",
     )
@@ -215,8 +215,8 @@ def main():
     # Persistencia no SQLite centralizado (banco <projeto>/database/blockchain.db)
     db = Database()
     chain_data = {"difficulty": chain.difficulty, "chain": [b.to_dict() for b in chain.chain]}
-    db.save_chain("12345678901", chain.difficulty, chain_data)
-    db.save_graph_node("12345678901", "Maria Clara Oliveira Santos Pereira", True, 0)
+    db.save_chain("12345678909", chain.difficulty, chain_data)
+    db.save_graph_node("12345678909", "Maria Clara Oliveira Santos Pereira", True, 0)
     print(f"  Cadeia persistida no SQLite centralizado: {db.db_path}")
 
     chain2 = Blockchain.load_from_file("cadeia_pf_assinada.json")

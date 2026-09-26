@@ -31,7 +31,8 @@ class VesselEventType(str, Enum):
     REVISAO = "REVISAO"  # Revisão/manutenção programada
     REPARO = "REPARO"  # Reparo não programado
     INSPECAO = "INSPECAO"  # Inspeção de segurança
-    CONVERSao = "CONVERSao"  # Modificação/conversão da embarcação
+    CONVERSAO = "CONVERSAO"  # Modificação/conversão da embarcação
+    CONVERSao = CONVERSAO  # Alias retrocompativel (L4)
 
     # ── Administrativo ───────────────────────────────────────────────
     LICENCIAMENTO = "LICENCIAMENTO"  # Renovação de licenciamento
@@ -485,7 +486,7 @@ class VesselChainProtector:
         VesselEventType.REVISAO,
         VesselEventType.INSPECAO,
         VesselEventType.LICENCIAMENTO,
-        VesselEventType.CONVERSao,
+        VesselEventType.CONVERSAO,
     }
 
     @staticmethod
