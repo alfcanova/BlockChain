@@ -97,6 +97,63 @@ def _valida_nomes_obrigatorios(campos: list[str], dados: dict) -> list[str]:
     return [c for c in campos if not dados.get(c)]
 
 
+# ── Validação de payload por contrato (M9/M10) ───────────────────────
+
+def _tem_campo(obj: Any, campo: str) -> bool:
+    """True se obj (dict) possui o campo com valor não-vazio.
+    Aceita dict ou objeto qualquer; objetos não-dict passam (tipado)."""
+    if not isinstance(obj, dict):
+        return True
+    v = obj.get(campo)
+    return v is not None and (not isinstance(v, str) or v.strip() != "")
+
+
+def _valida_data_ou_vazia(data: Any) -> bool:
+    """Formato DD/MM/AAAA obrigatório se a data estiver presente."""
+    if data is None or data == "":
+        return True
+    return isinstance(data, str) and bool(re.match(r"^\d{2}/\d{2}/\d{4}$", data))
+
+
+def _valida_contrato(
+    payload: dict,
+    mapa: dict[str, list[str]],
+    datas: tuple[str, ...] = (),
+) -> None:
+    """Valida campos obrigatórios por evento e formato de datas (M9/M10).
+
+    Cada chain de domínio define o contrato do payload que o método
+    `get_estado_atual()` sabe processar — o mesmo formato produzido
+    pelas factories e consumido pelos front-ends admin.
+
+    Args:
+        payload: dados do evento a registrar.
+        mapa: evento -> lista de campos obrigatórios (top-level);
+              campos aninhados usam notação "obj.campo" (ex: "comprador.cpf").
+        datas: nomes de campos de data em formato DD/MM/AAAA.
+
+    Raises:
+        ValueError: se faltar campo obrigatório ou data for inválida.
+    """
+    campos = mapa.get(payload.get("evento_tipo", ""))
+    if campos is None:
+        return
+    ausentes = [c for c in campos if not _tem_campo(
+        payload, c.split(".")[0]
+    ) or ("." in c and not _tem_campo(payload.get(c.split(".")[0]), c.split(".")[1]))]
+    if ausentes:
+        raise ValueError(
+            f"Campos obrigatórios ausentes para {payload.get('evento_tipo', 'evento')}: "
+            f"{', '.join(ausentes)}"
+        )
+    datas_invalidas = [d for d in datas
+                       if d in payload and not _valida_data_ou_vazia(payload[d])]
+    if datas_invalidas:
+        raise ValueError(
+            f"Data(s) inválida(s) (use DD/MM/AAAA): {', '.join(datas_invalidas)}"
+        )
+
+
 # ── Fábricas de eventos ───────────────────────────────────────────────
 
 class EventFactory:

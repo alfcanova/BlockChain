@@ -23,6 +23,34 @@ from blockchain_pf.signatures import (
 )
 
 from .events import VehicleEventType, VehicleChainProtector
+from blockchain_pf.events import _valida_contrato
+
+# Contrato do payload por evento — o mesmo formato processado por
+# get_estado_atual() e produzido pelas factories/admins (M9/M10).
+_PAYLOAD_CONTRACT: dict[str, list[str]] = {
+    "COMPRA_VENDA": ["comprador.cpf", "data_transacao", "valor_transacao"],
+    "DOACAO": ["donatario.cpf", "data_doacao"],
+    "LEILAO": ["data_leilao", "valor_minimo"],
+    "GARANTIA_EMPRESTIMO": ["credor", "valor_emprestimo", "data_garantia"],
+    "QUITACAO_GARANTIA": ["garantia_index"],
+    "MULTA": ["numero_auto", "data_infracao"],
+    "SINISTRO": ["data_sinistro", "tipo"],
+    "SINISTRO_PERDA_TOTAL": ["data_sinistro"],
+    "TROCA_PECA": ["peca", "data_troca"],
+    "VALIDACAO_PECA": ["peca", "data_validacao", "resultado"],
+    "TRANSFERENCIA_PROPRIEDADE": ["novo_proprietario.cpf"],
+    "REVISAO": ["data_revisao"],
+    "MUDANCA_COR": ["cor_nova", "data_mudanca"],
+    "LICENCIAMENTO": ["ano_licenciamento", "data_licenciamento"],
+    "RECALL_DE_FABRICA": ["data_notificacao", "numero_recall"],
+    "BAIXA": ["data_baixa", "motivo"],
+}
+_DATA_FIELDS = (
+    "data_transacao", "data_doacao", "data_leilao", "data_garantia",
+    "data_infracao", "data_sinistro", "data_troca", "data_validacao",
+    "data_revisao", "data_mudanca", "data_licenciamento", "data_notificacao",
+    "data_baixa", "data_vencimento",
+)
 
 
 class VehicleChain:
@@ -135,6 +163,12 @@ class VehicleChain:
             raise ValueError(
                 f"Evento '{event_type}' bloqueado para veículo com estado '{estado.get('situacao')}'."
             )
+
+        # Validação de payload por contrato (M9/M10)
+        if not isinstance(payload, dict):
+            raise ValueError("Payload do evento deve ser um dicionário.")
+        _valida_contrato({**payload, "evento_tipo": event_type},
+                         _PAYLOAD_CONTRACT, _DATA_FIELDS)
 
         last_block = self.chain[-1]
         new_block = Block(

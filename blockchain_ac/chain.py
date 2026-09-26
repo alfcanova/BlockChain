@@ -20,6 +20,27 @@ from blockchain_pf.signatures import (
 )
 
 from .events import AircraftEventType, AircraftChainProtector
+from blockchain_pf.events import _valida_contrato
+
+# Contrato do payload por evento — o mesmo formato processado por
+# get_estado_atual() e produzido pelas factories/admins (M9/M10).
+_PAYLOAD_CONTRACT: dict[str, list[str]] = {
+    "COMPRA_VENDA": ["comprador.cpf", "data_transacao", "valor_transacao"],
+    "DOACAO": ["donatario.cpf", "data_doacao"],
+    "MUDANCA_NOME": ["nome_anterior", "nome_novo", "data_mudanca"],
+    "REGISTRO": ["nova_matricula", "data_registro"],
+    "INSPECAO": ["data_inspecao", "resultado"],
+    "REVISAO": ["data_revisao"],
+    "AIRWORTHINESS": ["numero_certificado", "data_validade"],
+    "SEGURO": ["apolice_numero"],
+    "SINISTRO": ["data_sinistro", "tipo"],
+    "BAIXA": ["data_baixa", "motivo"],
+}
+_DATA_FIELDS = (
+    "data_transacao", "data_doacao", "data_mudanca", "data_registro",
+    "data_inspecao", "data_revisao", "data_emissao", "data_validade",
+    "data_inicio", "data_fim", "data_sinistro", "data_baixa",
+)
 
 
 class AircraftChain:
@@ -76,6 +97,12 @@ class AircraftChain:
         estado = self.get_estado_atual()
         if not AircraftChainProtector.pode_adicionar(event_type, estado.get("situacao", "REGULAR")):
             raise ValueError(f"Evento '{event_type}' bloqueado.")
+
+        # Validação de payload por contrato (M9/M10)
+        if not isinstance(payload, dict):
+            raise ValueError("Payload do evento deve ser um dicionário.")
+        _valida_contrato({**payload, "evento_tipo": event_type},
+                         _PAYLOAD_CONTRACT, _DATA_FIELDS)
         last_block = self.chain[-1]
         new_block = Block(
             index=last_block.index + 1, timestamp=time.time(),

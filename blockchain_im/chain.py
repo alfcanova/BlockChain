@@ -23,6 +23,27 @@ from blockchain_pf.signatures import (
 )
 
 from .events import PropertyEventType, PropertyChainProtector
+from blockchain_pf.events import _valida_contrato
+
+# Contrato do payload por evento — o mesmo formato processado por
+# get_estado_atual() e produzido pelas factories/admins (M9/M10).
+_PAYLOAD_CONTRACT: dict[str, list[str]] = {
+    "COMPRA_VENDA": ["comprador.cpf", "data_transacao"],
+    "DOACAO": ["donatario.cpf", "data_doacao"],
+    "HERANCA": ["herdeiros", "inventariado.cpf"],
+    "PROPRIETARIO": ["proprietario.cpf", "participacao"],
+    "LEILAO": ["data_leilao", "valor_minimo"],
+    "QUITACAO": ["garantia_index"],
+    "PENHORA": ["autoridade", "processo_numero"],
+    "IPTU": ["codigo_iptu"],
+    "CERTIDAO": ["tipo_certidao"],
+    "MATRICULA": ["nova_matricula"],
+    "FUSAO": ["area_total_m2"],
+}
+_DATA_FIELDS = (
+    "data_transacao", "data_doacao", "data_leilao", "data_garantia",
+    "data_penhora", "data_confisco", "data_emissao", "data_inicio", "data_fim",
+)
 
 
 class PropertyChain:
@@ -134,6 +155,12 @@ class PropertyChain:
             raise ValueError(
                 f"Evento '{event_type}' bloqueado para imóvel com estado '{estado.get('situacao')}'."
             )
+
+        # Validação de payload por contrato (M9/M10)
+        if not isinstance(payload, dict):
+            raise ValueError("Payload do evento deve ser um dicionário.")
+        _valida_contrato({**payload, "evento_tipo": event_type},
+                         _PAYLOAD_CONTRACT, _DATA_FIELDS)
 
         last_block = self.chain[-1]
         new_block = Block(

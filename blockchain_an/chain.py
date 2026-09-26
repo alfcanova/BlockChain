@@ -20,6 +20,28 @@ from blockchain_pf.signatures import (
 )
 
 from .events import AnimalEventType, AnimalChainProtector
+from blockchain_pf.events import _valida_contrato
+
+# Contrato do payload por evento — o mesmo formato processado por
+# get_estado_atual() e produzido pelas factories/admins (M9/M10).
+_PAYLOAD_CONTRACT: dict[str, list[str]] = {
+    "COMPRA_VENDA": ["comprador.cpf", "data_transacao"],
+    "DOACAO": ["donatario.cpf", "data_doacao"],
+    "ADOCAO": ["adotante.cpf", "data_adocao"],
+    "VACINACAO": ["nome_vacina", "data_vacinacao"],
+    "CASTRACAO": ["data_castracao"],
+    "TRATAMENTO": ["data_inicio", "diagnostico"],
+    "MICROCHIP": ["numero_microchip", "data_implantacao"],
+    "MUDANCA_NOME": ["nome_anterior", "nome_novo", "data_mudanca"],
+    "OBITO": ["data_obito"],
+    "LICENCA": ["data_licenca"],
+    "CERTIDAO": ["tipo_certidao"],
+}
+_DATA_FIELDS = (
+    "data_transacao", "data_doacao", "data_adocao", "data_vacinacao",
+    "data_castracao", "data_inicio", "data_fim", "data_implantacao",
+    "data_mudanca", "data_obito", "data_licenca", "data_emissao",
+)
 
 
 class AnimalChain:
@@ -76,6 +98,12 @@ class AnimalChain:
         estado = self.get_estado_atual()
         if not AnimalChainProtector.pode_adicionar(event_type, estado.get("situacao", "VIVO")):
             raise ValueError(f"Evento '{event_type}' bloqueado.")
+
+        # Validação de payload por contrato (M9/M10)
+        if not isinstance(payload, dict):
+            raise ValueError("Payload do evento deve ser um dicionário.")
+        _valida_contrato({**payload, "evento_tipo": event_type},
+                         _PAYLOAD_CONTRACT, _DATA_FIELDS)
         last_block = self.chain[-1]
         new_block = Block(
             index=last_block.index + 1, timestamp=time.time(),

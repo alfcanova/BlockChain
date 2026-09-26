@@ -23,6 +23,25 @@ from blockchain_pf.signatures import (
 )
 
 from .events import CompanyEventType, CompanyChainProtector
+from blockchain_pf.events import _valida_contrato
+
+# Contrato do payload por evento — o mesmo formato processado por
+# get_estado_atual() e produzido pelas factories/admins (M9/M10).
+_PAYLOAD_CONTRACT: dict[str, list[str]] = {
+    "ADICAO_SOCIO": ["socio.cpf", "participacao"],
+    "REMOCAO_SOCIO": ["socio.cpf"],
+    "MUDANCA_QUOTA": ["socio.cpf", "participacao_nova"],
+    "MUDANCA_CAPITAL": ["capital_novo"],
+    "MUDANCA_ENDERECO": ["novo_endereco"],
+    "MUDANCA_NOME": ["razao_nova"],
+    "CERTIDAO": ["tipo_certidao"],
+    "GARANTIA": ["credor", "valor_garantia", "data_garantia"],
+}
+_DATA_FIELDS = (
+    "data_entrada", "data_saida", "data_mudanca", "data_suspensao",
+    "data_reabertura", "data_emissao", "data_garantia", "data_vencimento",
+    "data_baixa",
+)
 
 
 class CompanyChain:
@@ -138,6 +157,12 @@ class CompanyChain:
                 f"Evento '{event_type}' bloqueado para empresa com estado "
                 f"'{estado.get('situacao_cadastral')}'."
             )
+
+        # Validação de payload por contrato (M9/M10)
+        if not isinstance(payload, dict):
+            raise ValueError("Payload do evento deve ser um dicionário.")
+        _valida_contrato({**payload, "evento_tipo": event_type},
+                         _PAYLOAD_CONTRACT, _DATA_FIELDS)
 
         last_block = self.chain[-1]
         new_block = Block(
