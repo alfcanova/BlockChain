@@ -98,7 +98,7 @@ Registra toda a vida de uma pessoa, do **nascimento** ao **obito**.
 | `OBITO` | Obito (encerra a cadeia) |
 | `ALTERACAO_NOME` | Mudanca de nome |
 | `DISVINC_MATERNA` | Disvinculacao do vinculo materno |
-| `DISVINC_PATerna` | Disvinculacao do vinculo paterno |
+| `DISVINC_PATERNA` | Disvinculacao do vinculo paterno |
 | `VACINACAO` | Registro de vacina |
 | `PROTESE` | Registro de protese/implante |
 
@@ -117,14 +117,14 @@ keypair = generate_authority_keypair("Cartorio SP")
 chain.set_signer(keypair)
 
 dados = EventFactory.nascimento(
-    cpf="12345678901", nome_completo="Maria Clara",
+    cpf="12345678909", nome_completo="Maria Clara",
     data_nascimento="15/03/2000", sexo="F",
     cidade_nascimento="Sao Paulo", uf_nascimento="SP",
     nome_mae="Ana Paula",
 )
 genesis = chain.create_genesis(dados)
 chain.add_event(EventType.CASAMENTO.value, {
-    "cpf": "12345678901", "nome_conjuge": "Pedro",
+    "cpf": "12345678909", "nome_conjuge": "Pedro",
     "data_casamento": "20/06/2022",
 })
 ok, msg = chain.validate(require_signatures=True)
@@ -170,7 +170,7 @@ dados = PropertyEventFactory.terreno(
 )
 chain.create_genesis(dados)
 chain.add_event("COMPRA_VENDA", PropertyEventFactory.compra_venda(
-    matricula="MAT-001", comprador_cpf="12345678901",
+    matricula="MAT-001", comprador_cpf="12345678909",
     comprador_nome="Joao", vendedor_cpf="98765432100",
     vendedor_nome="Maria", valor_transacao=350000.0,
     data_transacao="15/03/2025",
@@ -209,7 +209,7 @@ from blockchain_mo import VehicleChain, VehicleEventFactory
 
 chain = VehicleChain(difficulty=2)
 dados = VehicleEventFactory.fabricacao(
-    placa="ABC1D23", renavan="12345678901",
+    placa="ABC1D23", renavan="12345678909",
     chassis="9BWZZZ377VT000001", marca="Volkswagen",
     modelo="Gol", ano_fabricacao=2024, ano_modelo=2024,
     cor="Prata", combustivel="FLEX", cilindradas=1000,
@@ -217,7 +217,7 @@ dados = VehicleEventFactory.fabricacao(
 )
 chain.create_genesis(dados)
 chain.add_event("COMPRA_VENDA", VehicleEventFactory.compra_venda(
-    placa="ABC1D23", comprador_cpf="12345678901",
+    placa="ABC1D23", comprador_cpf="12345678909",
     comprador_nome="Joao", vendedor_cpf="98765432100",
     vendedor_nome="Maria", valor_transacao=35000.0,
     data_transacao="01/06/2024",
@@ -258,14 +258,14 @@ from blockchain_co import CompanyChain, CompanyEventFactory
 
 chain = CompanyChain(difficulty=2)
 dados = CompanyEventFactory.constituicao(
-    cnpj="12345678000190", razao_social="TechSolutions LTDA",
+    cnpj="12345678000195", razao_social="TechSolutions LTDA",
     nome_fantasia="TechSol", data_constituicao="01/01/2024",
     tipo_empresa="LTDA", porte="ME", capital_social=50000,
     natureza_juridica="2062", atividade_principal="6201501",
 )
 chain.create_genesis(dados)
 chain.add_event("ADICAO_SOCIO", CompanyEventFactory.adicao_socio(
-    cnpj="12345678000190", socio_cpf="98765432100",
+    cnpj="12345678000195", socio_cpf="98765432100",
     socio_nome="Maria Santos", participacao=30.0,
     data_entrada="15/06/2024",
 ))
@@ -310,7 +310,7 @@ dados = VesselEventFactory.construcao(
 )
 chain.create_genesis(dados)
 chain.add_event("COMPRA_VENDA", VesselEventFactory.compra_venda(
-    registro_nr="NR-001", comprador_cpf="12345678901",
+    registro_nr="NR-001", comprador_cpf="12345678909",
     comprador_nome="Joao", vendedor_cpf="98765432100",
     vendedor_nome="Maria", valor_transacao=250000.0,
     data_transacao="01/06/2024",
@@ -395,7 +395,7 @@ dados = AnimalEventFactory.nascimento(
     nome="Rex", especie="CAO", raca="Labrador",
     sexo="M", data_nascimento="15/03/2024",
     cor="Dourado", peso_kg=5.0,
-    proprietario_cpf="12345678901",
+    proprietario_cpf="12345678909",
     proprietario_nome="Joao Silva",
 )
 chain.create_genesis(dados)
@@ -499,10 +499,10 @@ As blockchains se comunicam entre si via **referencias cruzadas**:
 from blockchain_im import CrossChainManager
 
 manager = CrossChainManager()
-manager.register_pf("12345678901", chain_pf)
+manager.register_pf("12345678909", chain_pf)
 manager.register_im("MAT-001", chain_im)
 ref = manager.create_reference(
-    cpf="12345678901", matricula="MAT-001",
+    cpf="12345678909", matricula="MAT-001",
     tipo_vinculo="PROPRIETARIO",
 )
 ```

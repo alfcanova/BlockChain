@@ -177,7 +177,7 @@ async function loadDetail(){
       api(`/api/chain/${currentCpf}/validate?require_signatures=true`),
     ]);
     const timeline=tl.data||[];
-    const emojis={NASCIMENTO:'👶',ADOCAO:'👨‍👩‍👧',CASAMENTO:'💍',DIVORCIO:'💔',OBITO:'⚰️',ALTERACAO_NOME:'✏️',VACINACAO:'💉',PROTESE:'🩺',DISVINC_MATERNA:'🔗',DISVINC_PATerna:'🔗'};
+    const emojis={NASCIMENTO:'👶',ADOCAO:'👨‍👩‍👧',CASAMENTO:'💍',DIVORCIO:'💔',OBITO:'⚰️',ALTERACAO_NOME:'✏️',VACINACAO:'💉',PROTESE:'🩺',DISVINC_MATERNA:'🔗',DISVINC_PATERNA:'🔗',DISVINC_PATerna:'🔗'};
     const colors={NASCIMENTO:'tag-green',CASAMENTO:'tag-blue',DIVORCIO:'tag-red',ADOCAO:'tag-purple',OBITO:'tag-red',VACINACAO:'tag-green',PROTESE:'tag-cyan',ALTERACAO_NOME:'tag-yellow'};
 
     dv.innerHTML=`
@@ -348,7 +348,7 @@ function openNewPf(){
   document.getElementById('modalTitle').textContent='👤 Nova Pessoa Física';
   document.getElementById('modalBody').innerHTML=`
     <div class="form-grid">
-      <div><label>CPF</label><input id="nCpf" placeholder="12345678901"></div>
+      <div><label>CPF</label><input id="nCpf" placeholder="12345678909"></div>
       <div><label>Nome</label><input id="nNome" placeholder="Maria Clara"></div>
       <div><label>Data Nasc.</label><input id="nData" placeholder="15/03/2000"></div>
       <div><label>Sexo</label><select id="nSexo"><option value="F">F</option><option value="M">M</option></select></div>

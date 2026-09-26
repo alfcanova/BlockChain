@@ -144,7 +144,7 @@ function showTab(n,el){document.querySelectorAll('.tabs .tab').forEach(t=>t.clas
 async function loadCross(){const el=document.getElementById('crossContent');try{const r=await api(`/api/cross/mo/${currentPlaca}/pessoas`);const pess=r.data||[];el.innerHTML=`<h3>Pessoas vinculadas</h3>${pess.length===0?'<div style="color:var(--text2);font-size:0.85rem">Nenhuma pessoa vinculada.</div>':pess.map(p=>`<div style="padding:4px 0;font-size:0.85rem">👤 ${p.nome||p.cpf} — ${p.vinculo}</div>`).join('')}<div class="btn-row"><button class="btn btn-sm btn-primary" onclick="openVinculo()">+ Vincular Pessoa</button></div>`}catch(e){el.innerHTML='Erro: '+e.message}}
 
 const EVT_FORMS={
-  compra_venda:{title:'💰 Compra/Venda',fields:[{id:'f1',label:'CPF Comprador',ph:'12345678901'},{id:'f2',label:'Nome Comprador',ph:''},{id:'f3',label:'CPF Vendedor',ph:''},{id:'f4',label:'Nome Vendedor',ph:''},{id:'f5',label:'Valor (R$)',ph:'50000'},{id:'f6',label:'Data',ph:'01/06/2024'},{id:'f7',label:'Odomêtro (km)',ph:'45000'},{id:'f8',label:'Nota Fiscal',ph:''}]},
+  compra_venda:{title:'💰 Compra/Venda',fields:[{id:'f1',label:'CPF Comprador',ph:'12345678909'},{id:'f2',label:'Nome Comprador',ph:''},{id:'f3',label:'CPF Vendedor',ph:''},{id:'f4',label:'Nome Vendedor',ph:''},{id:'f5',label:'Valor (R$)',ph:'50000'},{id:'f6',label:'Data',ph:'01/06/2024'},{id:'f7',label:'Odomêtro (km)',ph:'45000'},{id:'f8',label:'Nota Fiscal',ph:''}]},
   doacao:{title:'🎁 Doação',fields:[{id:'f1',label:'CPF Donatário',ph:''},{id:'f2',label:'Nome Donatário',ph:''},{id:'f3',label:'CPF Doador',ph:''},{id:'f4',label:'Nome Doador',ph:''},{id:'f5',label:'Data',ph:'01/06/2024'},{id:'f6',label:'Motivo',ph:''}]},
   sinistro:{title:'⚠️ Sinistro',fields:[{id:'f1',label:'Data',ph:'01/06/2024'},{id:'f2',label:'Tipo',type:'sel',opts:['COLISAO','ATROPELAMENTO','INCENDIO','ALAGAMENTO','OUTRO']},{id:'f3',label:'Nº BO',ph:''},{id:'f4',label:'Delegacia',ph:''},{id:'f5',label:'Seguradora',ph:''},{id:'f6',label:'CNPJ Seg.',ph:''},{id:'f7',label:'Apólice',ph:''},{id:'f8',label:'Valor Dano (R$)',ph:'5000'},{id:'f9',label:'Peças',ph:'Para-choque, Farol'}]},
   sinistro_perda_total:{title:'💥 Perda Total',fields:[{id:'f1',label:'Data',ph:'01/06/2024'},{id:'f2',label:'Tipo',type:'sel',opts:['COLISAO','INCENDIO','ALAGAMENTO','FURTO_ROUBO']},{id:'f3',label:'Nº BO',ph:''},{id:'f4',label:'Seguradora',ph:''},{id:'f5',label:'CNPJ Seg.',ph:''},{id:'f6',label:'Indenização (R$)',ph:'30000'},{id:'f7',label:'Destino',type:'sel',opts:['DESLICHE','FERRO_VELHO','DESTRUIDO','RECICLAGEM']},{id:'f8',label:'Data Baixa DETRAN',ph:''}]},
@@ -187,7 +187,7 @@ async function submitEvt(){
 async function openNewMo(){
   document.getElementById('modalTitle').textContent='🚗 Novo Veículo';
   const flds=[
-    {l:'Placa',p:'ABC1D23'},{l:'Renavan',p:'12345678901'},{l:'Chassi',p:'9BWZZZ377VT000001'},
+    {l:'Placa',p:'ABC1D23'},{l:'Renavan',p:'12345678909'},{l:'Chassi',p:'9BWZZZ377VT000001'},
     {l:'Marca',p:'Volkswagen'},{l:'Modelo',p:'Gol'},{l:'Ano Fab.',p:'2024'},{l:'Ano Mod.',p:'2024'},
     {l:'Cor',p:'Prata'},{l:'Combustível',t:'sel',o:['GASOLINA','ETANOL','FLEX','DIESEL','ELETRICO']},
     {l:'Cilindradas',p:'1000'},{l:'Potência (CV)',p:'75'}];
