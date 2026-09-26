@@ -18,6 +18,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import threading
 import time
@@ -29,6 +30,34 @@ import jwt
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+
+# ── Complexidade de senha (F4) ────────────────────────────────────────
+
+# Rotacao de tokens (F3): tokens "jti" emitidos antes de REVOKE_TS_...
+# sao rejeitados no decode.
+_REVOKED_KEY = "_revoked_before"
+_revoked_before: dict[str, float] = {}  # username → timestamp
+_revoked_lock = threading.Lock()
+
+
+def validate_password_strength(password: str) -> Optional[str]:
+    """Valida complexidade da senha (F4).
+
+    Retorna mensagem de erro ou None se valida.
+    Regras: min 8 chars, 1 maiuscula, 1 minuscula, 1 numero, 1 especial.
+    """
+    if len(password) < 8:
+        return "Senha deve ter no minimo 8 caracteres."
+    if not re.search(r"[A-Z]", password):
+        return "Senha deve conter pelo menos uma letra maiuscula."
+    if not re.search(r"[a-z]", password):
+        return "Senha deve conter pelo menos uma letra minuscula."
+    if not re.search(r"\d", password):
+        return "Senha deve conter pelo menos um numero."
+    if not re.search(r"[^A-Za-z0-9]", password):
+        return "Senha deve conter pelo menos um caractere especial."
+    return None
 
 
 # ── Configuracao ───────────────────────────────────────────────────────
@@ -65,6 +94,8 @@ SECRET_KEY = _load_or_create_secret()
 ALGORITHM = "HS256"
 # Expiracao configuravel via env (TOKEN_EXPIRY_HOURS, padrao 24h)
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("TOKEN_EXPIRY_HOURS", "24")) * 60
+# F3: refresh token vive mais que o access (padrao 7 dias)
+REFRESH_TOKEN_EXPIRE_MINUTES = int(os.environ.get("REFRESH_TOKEN_DAYS", "7")) * 24 * 60
 
 
 # ── Usuarios (em memoria) ─────────────────────────────────────────────
@@ -166,12 +197,22 @@ def create_user(
     escopo: str = "",
     uf: str = "",
     cidade: str = "",
+    _internal: bool = False,
 ) -> User:
-    """Cria um novo usuario."""
-    password_hash = _hash_password(password)
+    """Cria um novo usuario.
+
+    Valida complexidade da senha (F4). Seeds internos do sistema passam
+    _internal=True (senha fixa de demonstracao, fora do escopo da regra).
+    """
     with _user_lock:
         if username in _users_db:
             raise ValueError(f"Usuario '{username}' ja existe.")
+    if not _internal:
+        erro = validate_password_strength(password)
+        if erro:
+            raise ValueError(erro)
+    password_hash = _hash_password(password)
+    with _user_lock:
         user = User(
             username=username,
             password_hash=password_hash,
@@ -294,37 +335,72 @@ def delete_user(username: str) -> bool:
 def create_access_token(
     data: dict[str, Any],
     expires_delta: Optional[int] = None,
+    token_type: str = "access",
 ) -> str:
     """
-    Gera um token JWT.
+    Gera um token JWT (F3: access ou refresh).
     
     Args:
         data:           Dados a codificar no token.
-        expires_delta:  Tempo de expiracao em segundos.
+        expires_delta:  Tempo de expiracao em segundos (access).
+        token_type:     "access" (padrao) ou "refresh".
     
     Returns:
         Token JWT codificado.
     """
     to_encode = data.copy()
-    expire = time.time() + (expires_delta or ACCESS_TOKEN_EXPIRE_MINUTES * 60)
-    to_encode.update({"exp": expire, "iat": time.time()})
+    if token_type == "refresh":
+        ttl = REFRESH_TOKEN_EXPIRE_MINUTES * 60
+    else:
+        ttl = expires_delta or ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    expire = time.time() + ttl
+    to_encode.update({
+        "exp": expire,
+        "iat": time.time(),
+        "jti": secrets.token_hex(8),
+        "typ": token_type,
+    })
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def decode_access_token(token: str) -> Optional[dict[str, Any]]:
+def decode_access_token(token: str, expected_type: Optional[str] = None) -> Optional[dict[str, Any]]:
     """
     Decodifica e valida um token JWT.
+
+    Args:
+        token:          Token JWT codificado.
+        expected_type:  Se informado, exige typ == expected_type (F3:
+                        refresh token nao pode ser usado como access).
     
     Returns:
-        Payload do token ou None se invalido.
+        Payload do token ou None se invalido/revogado.
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
     except jwt.ExpiredSignatureError:
         return None
     except jwt.InvalidTokenError:
         return None
+
+    # F3: revogacao por usuario (logout/seguranca) — tokens emitidos
+    # antes do corte sao rejeitados.
+    sub = str(payload.get("sub", ""))
+    iat = payload.get("iat", 0)
+    with _revoked_lock:
+        cutoff = _revoked_before.get(sub, 0)
+    if cutoff and iat and iat < cutoff:
+        return None
+
+    # F3: separacao de tipos (access vs refresh)
+    if expected_type and payload.get("typ", "access") != expected_type:
+        return None
+    return payload
+
+
+def revoke_user_tokens(username: str) -> None:
+    """Revoga todos os tokens do usuario emitidos ate agora (F3)."""
+    with _revoked_lock:
+        _revoked_before[username] = time.time()
 
 
 # ── FastAPI Security ───────────────────────────────────────────────────
@@ -419,11 +495,11 @@ def require_nivel_atual(min_nivel: int):
 def init_default_users() -> None:
     """Cria usuarios padrao para demonstracao."""
     if "admin" not in _users_db:
-        create_user("admin", "admin123", role="admin")
+        create_user("admin", "admin123", role="admin", _internal=True)
     if "operador" not in _users_db:
-        create_user("operador", "oper123", role="user")
+        create_user("operador", "oper123", role="user", _internal=True)
     if "consulta" not in _users_db:
-        create_user("consulta", "cons123", role="readonly")
+        create_user("consulta", "cons123", role="readonly", _internal=True)
 
 
 def init_default_authorities() -> None:
@@ -440,4 +516,4 @@ def init_default_authorities() -> None:
         ("admin03", "@dmin03BR"),
     ]:
         if get_user(username) is None:
-            create_user(username, password, role="admin", nivel=0)
+            create_user(username, password, role="admin", nivel=0, _internal=True)

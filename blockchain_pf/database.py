@@ -182,6 +182,89 @@ class Database:
             """)
             self._migrate_users_table(conn)
             self._seed_municipios()
+        self._run_migrations()
+
+    # ── Migrações versionadas (F10) ──────────────────────────────────
+
+    # Cada entrada: (versao, descricao, SQL). Executado em ordem; o
+    # numero da ultima versao aplicada fica em settings['schema_version'].
+    _MIGRATIONS: list[tuple[int, str, str]] = [
+        (1, "audit_log para rastreabilidade (F11)", """
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts REAL NOT NULL,
+                username TEXT NOT NULL DEFAULT '',
+                method TEXT NOT NULL,
+                path TEXT NOT NULL,
+                status INTEGER NOT NULL,
+                duration_ms REAL NOT NULL DEFAULT 0,
+                client_ip TEXT NOT NULL DEFAULT ''
+            );
+            CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(ts);
+            CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(username);
+        """),
+    ]
+
+    def _run_migrations(self) -> None:
+        """Aplica migrações pendentes em ordem e registra a versao (F10)."""
+        conn = self._get_conn()
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key = 'schema_version'"
+        ).fetchone()
+        atual = int(row["value"]) if row else 0
+        for versao, descricao, sql in sorted(self._MIGRATIONS):
+            if versao <= atual:
+                continue
+            with self._transaction() as tx:
+                tx.executescript(sql)
+                tx.execute(
+                    "INSERT INTO settings (key, value) VALUES ('schema_version', ?) "
+                    "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                    (str(versao),),
+                )
+            print(f"  DB: migracao {versao} aplicada — {descricao}")
+
+    def schema_version(self) -> int:
+        """Versao atual do schema (0 se nenhuma migracao aplicada)."""
+        conn = self._get_conn()
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key = 'schema_version'"
+        ).fetchone()
+        return int(row["value"]) if row else 0
+
+    # ── Audit log (F11) ───────────────────────────────────────────────
+
+    def save_audit_entry(self, username: str, method: str, path: str,
+                         status: int, duration_ms: float, client_ip: str = "") -> None:
+        """Registra uma chamada de API no audit log (fire-and-forget)."""
+        try:
+            with self._transaction() as conn:
+                conn.execute(
+                    "INSERT INTO audit_log (ts, username, method, path, status, duration_ms, client_ip) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (time.time(), username, method, path, int(status), float(duration_ms), client_ip),
+                )
+        except Exception:
+            pass  # auditoria nunca deve derrubar a requisicao
+
+    def load_audit_entries(self, limit: int = 100, username: str = "") -> list[dict]:
+        """Ultimas chamadas registradas (mais recentes primeiro)."""
+        conn = self._get_conn()
+        if username:
+            rows = conn.execute(
+                "SELECT * FROM audit_log WHERE username = ? ORDER BY ts DESC LIMIT ?",
+                (username, int(limit)),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM audit_log ORDER BY ts DESC LIMIT ?",
+                (int(limit),),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def count_audit_entries(self) -> int:
+        conn = self._get_conn()
+        return conn.execute("SELECT COUNT(*) AS c FROM audit_log").fetchone()["c"]
 
     def _migrate_users_table(self, conn) -> None:
         """Adiciona colunas de autoridade (nivel/escopo/uf/cidade) em DBs antigos."""
@@ -321,6 +404,14 @@ class Database:
             (domain, cid),
         ).fetchall()
         return [json.loads(r["block_json"]) for r in rows]
+
+    def count_all_chains(self) -> dict:
+        """Total de cadeias por dominio (F8: health)."""
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT domain, COUNT(*) AS c FROM chains GROUP BY domain"
+        ).fetchall()
+        return {r["domain"]: r["c"] for r in rows}
 
     def count_blocks(self, domain: str, cid: str) -> int:
         conn = self._get_conn()

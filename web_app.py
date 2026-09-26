@@ -104,6 +104,7 @@ from blockchain_pf.auth import (
     init_default_authorities, update_user_metadata,
     get_current_user, require_write_access, require_admin,
     require_nivel_atual,
+    revoke_user_tokens, decode_access_token,
     set_database as set_auth_database,
 )
 from blockchain_pf.database import Database
@@ -115,6 +116,47 @@ from blockchain_pf import geografia_br as geografia
 PORT = int(os.environ.get("PORT", "8000"))
 DEFAULT_DIFFICULTY = int(os.environ.get("DEFAULT_DIFFICULTY", "2"))
 TOKEN_EXPIRY_HOURS = int(os.environ.get("TOKEN_EXPIRY_HOURS", "24"))
+
+# F2: rate limiting (janela fixa por IP+rota)
+RATE_LIMIT_ENABLED = os.environ.get("RATE_LIMIT_ENABLED", "1") == "1"
+RATE_LIMIT_LOGIN = int(os.environ.get("RATE_LIMIT_LOGIN", "10"))   # req/min por IP
+RATE_LIMIT_WRITE = int(os.environ.get("RATE_LIMIT_WRITE", "120"))  # req/min por IP+rota
+
+# F9: contadores Prometheus (text/plain em /api/metrics)
+_METRICS = {
+    "http_requests_total": {},   # (method, path, status) → count
+    "http_request_duration_seconds": {},  # (method, path) → [count, total_s]
+    "auth_login_attempts_total": {},      # outcome → count
+}
+_metrics_lock = threading.Lock()
+
+
+def _metrics_snapshot() -> str:
+    """Renderiza as metricas em formato de exposicao Prometheus."""
+    lines: list[str] = []
+    req = _METRICS["http_requests_total"]
+    lines.append("# HELP http_requests_total Total de requisicoes HTTP.")
+    lines.append("# TYPE http_requests_total counter")
+    for (method, path, status), count in sorted(req.items()):
+        lines.append(
+            f'http_requests_total{{method="{method}",path="{path}",status="{status}"}} {count}'
+        )
+    dur = _METRICS["http_request_duration_seconds"]
+    lines.append("# HELP http_request_duration_seconds Duracao total das requisicoes (s).")
+    lines.append("# TYPE http_request_duration_seconds counter")
+    for (method, path), (count, total) in sorted(dur.items()):
+        lines.append(
+            f'http_request_duration_seconds_sum{{method="{method}",path="{path}"}} {total:.6f}'
+        )
+        lines.append(
+            f'http_request_duration_seconds_count{{method="{method}",path="{path}"}} {count}'
+        )
+    logins = _METRICS["auth_login_attempts_total"]
+    lines.append("# HELP auth_login_attempts_total Tentativas de login por resultado.")
+    lines.append("# TYPE auth_login_attempts_total counter")
+    for outcome, count in sorted(logins.items()):
+        lines.append(f'auth_login_attempts_total{{outcome="{outcome}"}} {count}')
+    return "\n".join(lines) + "\n"
 
 
 # ── App ────────────────────────────────────────────────────────────
@@ -145,6 +187,91 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── F9: Metricas + F11: Audit log (middlewares) ──────────────────────
+
+_METRICS_EXCLUDED = {"/api/metrics"}
+_AUDIT_EXCLUDED = {"/api/health", "/api/metrics"}
+
+
+@app.middleware("http")
+async def metrics_audit_middleware(request, call_next):
+    """F9: conta requisicoes/latencia; F11: grava audit log por usuario."""
+    import time as _time
+    start = _time.time()
+    response = await call_next(request)
+    dur = _time.time() - start
+
+    path = request.url.path
+    method = request.method
+    status = response.status_code
+    client_ip = (request.client.host if request.client else "")
+
+    if path not in _METRICS_EXCLUDED:
+        with _metrics_lock:
+            key = (method, path, str(status))
+            _METRICS["http_requests_total"][key] = \
+                _METRICS["http_requests_total"].get(key, 0) + 1
+            dkey = (method, path)
+            cur = _METRICS["http_request_duration_seconds"].setdefault(dkey, [0, 0.0])
+            cur[0] += 1
+            cur[1] += dur
+
+    if (path not in _AUDIT_EXCLUDED and db is not None
+            and not path.startswith("/htmlcov")):
+        username = ""
+        authz = request.headers.get("authorization", "")
+        if authz.lower().startswith("bearer "):
+            payload = decode_access_token(authz[7:].strip())
+            if payload:
+                username = str(payload.get("sub", ""))
+        db.save_audit_entry(
+            username=username, method=method, path=path,
+            status=status, duration_ms=dur * 1000.0, client_ip=client_ip,
+        )
+    return response
+
+
+# ── F2: Rate limiting (janela fixa, em memoria) ───────────────────────
+
+_rate_lock = threading.Lock()
+_rate_buckets: dict[str, list] = {}  # chave → [window_start, count]
+
+
+def _rate_check(key: str, limit: int) -> bool:
+    """True se dentro do limite; False se excedeu (janela de 60s)."""
+    now = time.time()
+    with _rate_lock:
+        entry = _rate_buckets.get(key)
+        if entry is None or now - entry[0] >= 60.0:
+            _rate_buckets[key] = [now, 1]
+            return True
+        entry[1] += 1
+        return entry[1] <= limit
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request, call_next):
+    """F2: limita /api/auth/login (por IP) e rotas de escrita (por IP+rota)."""
+    if not RATE_LIMIT_ENABLED:
+        return await call_next(request)
+
+    path = request.url.path
+    method = request.method
+    client_ip = request.client.host if request.client else "?"
+
+    if path == "/api/auth/login" and method == "POST":
+        if not _rate_check(f"login:{client_ip}", RATE_LIMIT_LOGIN):
+            return JSONResponse(status_code=429, content={
+                "detail": "Muitas tentativas de login. Tente novamente em 1 minuto.",
+            })
+    elif method in ("POST", "PUT", "PATCH", "DELETE") and path.startswith("/api/"):
+        if not _rate_check(f"write:{client_ip}:{method}:{path}", RATE_LIMIT_WRITE):
+            return JSONResponse(status_code=429, content={
+                "detail": "Taxa de requisicoes excedida para esta rota.",
+            })
+    return await call_next(request)
 
 # ── Armazenamento em memoria ──────────────────────────────────────────
 
@@ -675,6 +802,35 @@ def admin_cross():
 
 @app.get("/api/health")
 def health():
+    """F8: status do servidor, DB e memoria + contagem de cadeias."""
+    # DB: probe real (SELECT 1) + contagens
+    db_status = "ok"
+    db_detail = {}
+    try:
+        conn = db._get_conn()
+        conn.execute("SELECT 1")
+        db_detail = {
+            "schema_version": db.schema_version(),
+            "audit_entries": db.count_audit_entries(),
+            "chains": db.count_all_chains(),
+        }
+    except Exception as e:
+        db_status = f"erro: {e}"
+
+    # Memoria do processo (F8); psutil e opcional
+    memoria = None
+    try:
+        import psutil
+        proc = psutil.Process()
+        mem = proc.memory_info()
+        memoria = {
+            "rss_mb": round(mem.rss / 1024 / 1024, 1),
+            "vms_mb": round(mem.vms / 1024 / 1024, 1),
+            "percent": round(proc.memory_percent(), 1),
+        }
+    except Exception:
+        pass
+
     return ok({
         "server": "Blockchain Brasil v4.0",
         "timestamp": time.time(),
@@ -686,9 +842,30 @@ def health():
             "EM": {"count": len(em_chains), "label": "Embarcacoes"},
             "AC": {"count": len(ac_chains), "label": "Aeronaves"},
             "AN": {"count": len(an_chains), "label": "Animais"},
+            "AU": {"count": len(au_chains), "label": "Autoridades"},
         },
-        "total_chains": len(chains) + len(im_chains) + len(mo_chains) + len(co_chains) + len(em_chains) + len(ac_chains) + len(an_chains),
+        "total_chains": len(chains) + len(im_chains) + len(mo_chains) + len(co_chains) + len(em_chains) + len(ac_chains) + len(an_chains) + len(au_chains),
+        "database": {"status": db_status, **db_detail},
+        "memoria": memoria,
     })
+
+
+@app.get("/api/metrics")
+def metrics():
+    """F9: metricas em formato de exposicao Prometheus (text/plain)."""
+    from fastapi.responses import Response
+    return Response(
+        content=_metrics_snapshot(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/api/audit")
+def get_audit(limit: int = 100, username: str = "", user: dict = Depends(require_admin)):
+    """F11: ultimas chamadas de API registradas (admin only)."""
+    limit = max(1, min(limit, 500))
+    return ok(db.load_audit_entries(limit=limit, username=username))
 
 
 # ── Rotas: Geografia (base UF/Cidades IBGE) ─────────────────────────────
@@ -726,6 +903,9 @@ def login(req: LoginRequest):
     """Autentica usuario e retorna token JWT."""
     user = authenticate_user(req.username, req.password)
     if not user:
+        with _metrics_lock:
+            k = _METRICS["auth_login_attempts_total"].setdefault("falha", 0)
+            _METRICS["auth_login_attempts_total"]["falha"] = k + 1
         raise HTTPException(
             status_code=401,
             detail="Usuario ou senha invalidos.",
@@ -738,12 +918,54 @@ def login(req: LoginRequest):
         "uf": user.uf,
         "cidade": user.cidade,
     })
+    refresh = create_access_token(
+        {"sub": user.username}, token_type="refresh"
+    )
+    with _metrics_lock:
+        k = _METRICS["auth_login_attempts_total"].setdefault("ok", 0)
+        _METRICS["auth_login_attempts_total"]["ok"] = k + 1
     return ok({
         "token": token,
+        "refresh_token": refresh,
         "token_type": "bearer",
         "expires_in": TOKEN_EXPIRY_HOURS * 3600,
         "user": user.to_dict(),
     }, "Login realizado com sucesso.")
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+@app.post("/api/auth/refresh")
+def refresh_session(req: RefreshRequest):
+    """F3: renova o access token a partir de um refresh token valido."""
+    payload = decode_access_token(req.refresh_token, expected_type="refresh")
+    if not payload:
+        raise HTTPException(status_code=401, detail="Refresh token invalido ou expirado.")
+    user = get_user(str(payload.get("sub", "")))
+    if not user or not user.ativo:
+        raise HTTPException(status_code=401, detail="Usuario invalido ou inativo.")
+    token = create_access_token({
+        "sub": user.username,
+        "role": user.role,
+        "nivel": user.nivel,
+        "escopo": user.escopo,
+        "uf": user.uf,
+        "cidade": user.cidade,
+    })
+    return ok({
+        "token": token,
+        "token_type": "bearer",
+        "expires_in": TOKEN_EXPIRY_HOURS * 3600,
+    }, "Sessao renovada.")
+
+
+@app.post("/api/auth/logout")
+def logout_session(user: dict = Depends(get_current_user)):
+    """F3: revoga os tokens do usuario (novo login passa a ser obrigatorio)."""
+    revoke_user_tokens(str(user.get("sub", "")))
+    return ok(message="Logout realizado — tokens revogados.")
 
 
 @app.get("/api/auth/me")
@@ -762,12 +984,14 @@ def list_all_users(admin: dict = Depends(require_admin)):
 
 @app.post("/api/auth/users", status_code=201)
 def create_new_user(req: UserCreateRequest, admin: dict = Depends(require_admin)):
-    """Cria novo usuario (admin only)."""
+    """Cria novo usuario (admin only). Senha fraca retorna 400 (F4)."""
     try:
         user = create_user(req.username, req.password, req.role)
         return ok(user.to_dict(), f"Usuario '{req.username}' criado.")
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        msg = str(e)
+        status_code = 400 if "Senha" in msg else 409
+        raise HTTPException(status_code=status_code, detail=msg)
 
 
 @app.delete("/api/auth/users/{username}")
@@ -2164,10 +2388,15 @@ def criar_autoridade(req: AuthorityCreateRequest, user: dict = Depends(get_curre
     au_chains[uid] = chain
     _persist_autoridade(uid)
 
-    senha = req.senha or secrets.token_hex(12)
-    create_user(uid, senha, role="user", nivel=req.nivel,
-                escopo=req.escopo, uf=req.uf.strip().upper(),
-                cidade=dados["cidade"])
+    # F4: senha gerada satisfaz a politica (letra+num+especial); se o
+    # admin informou uma senha fraca, rejeita com 400.
+    senha = req.senha or (secrets.token_hex(6) + "Aa1!")
+    try:
+        create_user(uid, senha, role="user", nivel=req.nivel,
+                    escopo=req.escopo, uf=req.uf.strip().upper(),
+                    cidade=dados["cidade"])
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     return ok({
         "id": uid,

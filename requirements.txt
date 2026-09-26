@@ -5,6 +5,7 @@ pydantic==2.13.4
 cryptography==49.0.0
 PyJWT==2.13.0
 bcrypt==5.0.0
+psutil==7.2.2
 
 # Dev / testes
 pytest==9.0.3

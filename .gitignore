@@ -34,9 +34,6 @@ env/
 demo_output/
 database/demo_output/
 
-# Testes locais (não versionados; use 'git add -f tests/...' para forçar)
-tests/
-
 # Temporary files
 *.tmp
 *.bak

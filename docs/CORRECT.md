@@ -3,7 +3,8 @@
 > Ordem de execucao com dependencias. Cada fase so comeca quando a anterior estiver 100%.
 >
 > **Status (2026-09-26):** Fases 1 a 5, P1-P3, R1/N2 (auditoria dos
-> admins, bugs N3-N6) executados e validados (1127 testes).
+> admins, bugs N3-N6) e P5-P7 (rate limiting, refresh tokens, senha
+> forte) executados e validados (1152 testes).
 > Este arquivo mantem apenas o que resta; o conteudo executado foi removido
 > e o historico esta em `git log`.
 
@@ -22,29 +23,28 @@ atualizar os imports junto.
 
 ---
 
-## PENDENTE: seguranca de autenticacao
+## RESOLVIDO: seguranca de autenticacao (P5-P7)
 
-### P5. Rate limiting (F2)
-**Alvo:** `/api/auth/login`, rotas de escrita.
-**Mudanca:** Middleware/slowapi com janela por IP e backoff por usuario.
+- **P5/F2** — Rate limiting: middleware com janela fixa de 60s por IP
+  (`/api/auth/login` 10/min; escritas 120/min por IP+rota), 429 com
+  mensagem; configuravel via `RATE_LIMIT_ENABLED/LOGIN/WRITE`.
+- **P6/F3** — Refresh tokens: login emite access+refresh (`typ`/`jti`),
+  `POST /api/auth/refresh` renova a sessao e `POST /api/auth/logout`
+  revoga por usuario; refresh nao serve como access.
+- **P7/F4** — Complexidade de senha em `create_user` (min 8 chars com
+  maiuscula/minuscula/numero/especial); 400 na API; seeds internos com
+  bypass `_internal`; senha de autoridade gerada satisfaz a politica.
 
-### P6. Refresh tokens (F3)
-**Arquivo:** `blockchain_pf/auth.py` + rotas `/api/auth/*`.
-**Mudanca:** Par access (curto) + refresh (longo, revogavel), endpoint
-`POST /api/auth/refresh` e revogacao no logout.
-
-### P7. Password complexity (F4)
-**Arquivo:** `blockchain_pf/auth.py create_user` / `UserCreateRequest`.
-**Mudanca:** Minimo 8 chars com maiuscula, numero e especial; rejeitar
-senhas fracas no cadastro e na troca de senha.
+Tambem resolvidos nesta rodada: **F8** (health com DB+memoria),
+**F9** (`/api/metrics` Prometheus), **F10** (migracoes versionadas
+`schema_version`), **F11** (audit log + `GET /api/audit`).
 
 ---
 
 ## PENDENTE: features (resumo)
 
-F1 Docker/compose · F6 integridade cross-chain (orfos) · F7 graph rebuild ·
-F8 health check enriquecido · F9 Prometheus · F10 Alembic · F11 audit log ·
-F12 export/import bundle.
+F1 Docker/compose · F6 integridade cross-chain (orfos) ·
+F7 graph rebuild · F12 export/import bundle.
 
 Detalhes de cada feature no `docs/TODO.md`.
 
@@ -65,14 +65,12 @@ Detalhes de cada feature no `docs/TODO.md`.
 ```
 P4 (L2 routers)
    ↓
-P5 → P6 → P7 (seguranca de auth)
-   ↓
 T1 → T2 → T3 (testes residuais)
    ↓
-Features F1/F6-F12 (backlog, sem ordem obrigatoria)
+Features F1/F6/F7/F12 (backlog, sem ordem obrigatoria)
    ↓
 pytest → commit → push
 ```
 
-**Suite atual:** 1127 passed | Cobertura: 75% | Principais gaps:
+**Suite atual:** 1152 passed | Cobertura: 75% | Principais gaps:
 `blockchain_co/chain.py` (60%), `web_app.py` (56%).
